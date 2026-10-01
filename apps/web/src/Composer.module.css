@@ -1,0 +1,17 @@
+/* Adapted from DeepSeek Harness ui-conversation InputBar.module.css; MIT. */
+.root{display:flex;justify-content:center;width:100%;padding:0 24px 4px}
+.card{box-sizing:border-box;position:relative;display:flex;flex-direction:column;gap:8px;width:100%;max-width:700px;padding:8px;border:1px solid var(--talent-line);border-radius:24px;background:var(--talent-surface);box-shadow:0 7px 24px #1b275508;font-size:var(--font-size,14px);line-height:1.55}
+.card:focus-within{border-color:#b7c2f0;box-shadow:0 0 0 3px #5268c80d}
+.disabled{background:color-mix(in srgb,var(--talent-surface),var(--talent-sidebar) 38%)}
+.input{box-sizing:border-box;min-height:52px;max-height:180px;width:100%;resize:vertical;padding:4px 8px 0 14px;border:0;outline:0;background:transparent;color:inherit;font:inherit;line-height:inherit;white-space:pre-wrap;overflow-wrap:anywhere}
+.input::placeholder{color:var(--talent-muted)}
+.input:disabled{cursor:not-allowed}
+.row{display:flex;align-items:center;gap:8px;min-width:0;padding:2px 4px 0}
+.add{display:grid;place-items:center;flex:none;width:28px;height:28px;border:0;border-radius:999px;background:var(--talent-sidebar);color:var(--talent-muted);cursor:pointer}
+.add:disabled{opacity:.5;cursor:default}
+.trailing{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;flex:1}
+.status{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--talent-muted);font-size:11px}
+.primary{display:grid;place-items:center;flex:none;width:34px;height:34px;border:0;border-radius:999px;background:var(--talent-accent);color:#fff;cursor:pointer;transition:background-color 100ms ease}
+.primary:disabled{background:#c9cbd2;cursor:not-allowed}
+.primary:hover:not(:disabled){filter:brightness(1.06)}
+@media(max-width:620px){.root{padding-left:14px;padding-right:14px}.card{border-radius:18px}}

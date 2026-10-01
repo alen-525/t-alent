@@ -1,0 +1,142 @@
+/* Adapted from DeepSeek Harness ui-settings-general SettingsRoot styles; MIT License. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mask {
+  position: absolute;
+  inset: var(--dsh-frame-chrome-top, 0px) 0 0;
+  background: var(--dsw-alias-bg-mask-1);
+  backdrop-filter: var(--dsw-mask-blur);
+}
+
+/* Current upstream settings shell: 800×800, constrained by the viewport. */
+.panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 800px;
+  height: min(800px, calc(100vh - 2 * max(24px, var(--dsh-frame-overlay-top, 24px))));
+  max-width: calc(100vw - 48px);
+  border-radius: var(--dsw-radius-panel);
+  overflow: hidden;
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-elevation-prominent);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.panel:focus { outline: none; }
+
+/* Source nav rail: 188px wide, 22px top and 12px side padding, 18px gap. */
+.nav {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 188px;
+  padding: 22px 12px 0;
+  box-sizing: border-box;
+}
+
+.title {
+  padding: 0 12px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.navList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 9px 16px 9px 12px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+}
+
+.navItem:hover { background: var(--dsw-specific-sidebar-nav-item-hover); }
+.selected { background: var(--dsw-specific-sidebar-nav-item-active); }
+.navItem:focus-visible, .close:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+.icon { flex: none; display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; }
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Source header: 54px high, 20px top, 14px right and 10px left padding. */
+.header {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  height: 54px;
+  padding: 20px 14px 8px 10px;
+  box-sizing: border-box;
+}
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  cursor: pointer;
+  color: var(--dsw-alias-label-primary);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.close:hover { background: var(--dsw-alias-interactive-bg-hover); }
+
+/* Source options column: scrolls independently with 24px side/bottom padding. */
+.body {
+  flex: 1;
+  min-height: 0;
+  padding: 0 24px 24px;
+  overflow-y: auto;
+}
+
+@media (max-width: 620px) {
+  .overlay { align-items: stretch; }
+  .panel { width: 100%; height: 100%; max-width: none; max-height: 100%; border-radius: 0; flex-direction: column; }
+  .nav { flex: none; width: auto; gap: 10px; padding: 14px 14px 8px; }
+  .navList { flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+  .navItem { flex: none; min-height: 36px; white-space: nowrap; }
+  .header { height: 42px; padding: 7px 12px; }
+  .body { padding: 0 16px 20px; }
+}

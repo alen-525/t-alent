@@ -1,0 +1,442 @@
+/* Sidebar column: content keeps its expanded width during collapse and fades
+   while the frame clips it; the compact layout applies after the transition. */
+
+.root {
+  --sidebar-inline-padding: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 6px var(--sidebar-inline-padding);
+  box-sizing: border-box;
+  background: var(--dsw-specific-sidebar-fill);
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  /* The sidebar is elevated above the conversation surface, so a revealed
+     scrollbar uses the l2 pair. .quietBars hides it without changing layout. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+
+
+/* Compact rail uses centered 36px controls with a 12px vertical rhythm. */
+.root.collapsed {
+  padding: 18px 10px 6px;
+}
+
+
+
+/* The thumb fades while the pointer is outside and remains reserved in layout. */
+.root.quietBars {
+  --dsh-scrollbar-thumb: transparent;
+  --dsh-scrollbar-thumb-hover: transparent;
+}
+
+/* Collapse phase 1: the whole frozen-width content fades out in place over
+   150ms; at settle the children unmount/snap to the rail layout. */
+.fading > * {
+  opacity: 0;
+  transition: opacity 150ms var(--ds-ease-in-out);
+}
+
+/* Wide-only content fades back in on expand remount. */
+.wide {
+  animation: wide-in 200ms var(--ds-ease-in-out);
+}
+
+@keyframes wide-in {
+  from { opacity: 0; }
+}
+
+/* Compact controls enter from the former expanded edge after the crossfade. */
+.railIn .iconButton,
+.railIn .newSession,
+.railIn .panelList,
+.railIn .regionArea {
+  animation: rail-in 150ms var(--ds-ease-in-out) backwards;
+}
+
+.railIn .footArea {
+  animation: rail-fade-in 150ms var(--ds-ease-in-out) backwards;
+}
+
+@keyframes rail-in {
+  from {
+    opacity: 0;
+    transform: translateX(49px);
+  }
+}
+
+@keyframes rail-fade-in {
+  from { opacity: 0; }
+}
+
+
+
+
+
+
+
+/* Logo row keeps the brand and toggle aligned in wide and compact layouts. */
+.logoRow {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  height: 60px;
+  padding: 8px 0 8px 4px;
+  margin-bottom: 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.collapsed .logoRow {
+  height: 36px;
+  padding: 0;
+  margin-bottom: 12px;
+  justify-content: flex-start;
+  
+  overflow: visible;
+}
+
+/* The t-alent wordmark is also the home control. */
+.brand {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+
+
+
+.brandIdentity {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  min-width: 0;
+}
+
+.brandMark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brandName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 24px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+  letter-spacing: 0.04em;
+}
+
+.iconButton {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.iconButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+
+.iconButton.toggle:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+.collapsed .iconButton {
+  width: 36px;
+  height: 36px;
+  
+  border-radius: var(--dsw-radius-md);
+}
+
+/* The compact rail uses the t mark at rest and reveals the panel icon on hover. */
+.collapsed .toggle .panelIcon {
+  display: none;
+}
+
+.collapsed .toggle:hover .panelIcon {
+  display: inline;
+}
+
+.collapsed .toggle:hover .railMark {
+  display: none;
+}
+
+.railMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Compact rail controls use primary ink. */
+.collapsed .iconButton {
+  color: var(--dsw-alias-label-primary);
+}
+
+/* New Session uses a 38px wide control and a compact icon button in the rail. */
+.newSession {
+  container-type: inline-size;
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  height: 38px;
+  padding: 8px 12px;
+  margin: 0 2px 12px;
+  box-sizing: border-box;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-button-elevated-fill);
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.newSession:hover {
+  background: var(--dsw-alias-button-floating-hover);
+}
+
+
+
+.collapsed .newSession {
+  align-self: flex-start;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin: 0 0 12px;
+  gap: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.collapsed .newSession:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.newSessionLabel {
+  max-width: 200px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.newSessionLabelMask { flex: 1; min-width: 0; }
+.newSessionContent { display: flex; width: 100cqw; align-items: center; justify-content: center; gap: 6px; }
+.newSessionContent > svg { flex: none; }
+
+.panelList {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+/* Panel entries share the New Session bar's 12px radius and 2px inset, the
+   session rows' hover/selected surface, and the primary ink. */
+.panelRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 2px;
+  min-height: 36px;
+  padding: 7px 8px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  line-height: 22px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.panelRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.panelRow.panelActive {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.panelRow:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+.panelGlyph {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panelGlyph > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.collapsed .panelGlyph > svg {
+  width: 18px;
+  height: 18px;
+}
+
+.panelTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collapsed .panelList {
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.collapsed .panelRow {
+  width: 36px;
+  height: 36px;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Region seat: always mounted so the foot never moves. Its trailing margin
+   cancels the wide shell inset so the nested scrollbar can sit at the sidebar
+   edge; the browser restores that inset inside its own rows. */
+.regionArea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: -4px;
+  margin-right: calc(-1 * var(--sidebar-inline-padding));
+  padding-left: 4px;
+  overflow: hidden;
+}
+
+.collapsed .regionArea {
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+}
+
+/* Footer seats: additive actions stack above Settings. Each occupant owns its
+   button geometry and hover chrome. */
+.footArea {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.settingsArea,
+.footerActions {
+  flex: none;
+  min-width: 0;
+  width: 100%;
+}
+
+.footerActions {
+  display: flex;
+}
+
+.collapsed .footArea {
+  align-items: center;
+}
+
+.collapsed .settingsArea,
+.collapsed .footerActions {
+  display: flex;
+  justify-content: center;
+  width: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wide,
+  .fading > *,
+  .railIn .iconButton,
+  .railIn .newSession,
+  .railIn .panelList,
+  .railIn .footArea,
+  .railIn .regionArea {
+    transition: none;
+    animation: none;
+  }
+}
+
+
+.wordmark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: var(--talent-accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.defaultRegion {
+  min-width: 0;
+  padding-top: 25px;
+}
+
+.regionHeading,
+.recentHeading {
+  padding: 0 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.recentHeading {
+  margin: 25px 0 9px;
+}
+
+.emptyRegion {
+  padding: 4px 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+
+.collapsed .defaultRegion {
+  display: none;
+}
