@@ -15,16 +15,4 @@ Create a production bundle with `npm run build`, check types with `npm run typec
 
 This repository does not include an agent loop, model provider, shell, tool implementation, or code-loading runtime. With no connected host and selected runtime-ready package, task entry is disabled. Importing a JSON package descriptor records validated metadata only; it does not load or execute package code. A host may inject `window.talentHostAdapter` before the app mounts and dispatch `talent:host-ready` when it connects or disconnects. The adapter contract is in `apps/web/src/host-adapter.ts` and streams task events into the UI. See [the migration notes](apps/web/MIGRATION.md).
 
-## Clone the reference source
-
-The DeepSeek harness under `Reference/deepseek-harness` is reference material only; it is not a production dependency. Clone this repository with its submodule:
-
-```sh
-git clone --recurse-submodules <repository-url>
-```
-
-If you already cloned without submodules, initialize it with:
-
-```sh
-git submodule update --init --recursive
-```
+`Reference/` contains local reference materials and is not included in this repository.
