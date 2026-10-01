@@ -1,0 +1,15 @@
+{
+  "id": "codex",
+  "name": "Codex Agent",
+  "version": "0.1.0",
+  "description": "使用原版 Codex Harness，支持 GPT 模型、工具执行和会话恢复。",
+  "entry": "src/index.mjs",
+  "upstream": {
+    "package": "@openai/codex",
+    "version": "0.159.3",
+    "repository": "https://github.com/openai/codex",
+    "license": "Apache-2.0",
+    "referenceCommit": "01fc69f4026735edfdf6789820549727a4867b11",
+    "sourceTag": "rust-v0.159.3"
+  }
+}

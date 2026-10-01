@@ -119,6 +119,44 @@ test('empty host has no executable package and same-origin JSON is required for 
   assert.equal(vitePort.status, 409, 'Vite origin is allowed, then package selection validation runs')
 })
 
+test('two packages keep config and state isolated, route by id, and survive the other package unloading', async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'talent-host-pair-'))
+  t.after(() => rm(root, { recursive: true, force: true }))
+  const packages = []
+  for (const id of ['fixture.alpha', 'fixture.beta']) {
+    const pack = path.join(root, id)
+    await mkdir(pack)
+    await writeFile(path.join(pack, 'agent-package.json'), JSON.stringify({ id, name: id, version: '1.0.0', entry: 'index.mjs' }))
+    await writeFile(path.join(pack, 'index.mjs'), `export function createAgentPackage({ stateDir, config }) { return {
+      async *executeTask({ input }) { yield { type: 'assistant-delta', text: JSON.stringify({ id: ${JSON.stringify(id)}, input, model: config.model, stateDir }) } },
+      async cancelTask() {}, async dispose() {},
+    } }`)
+    packages.push(pack)
+  }
+  const stateDir = path.join(root, 'state')
+  const configPath = path.join(root, 'packages.json')
+  await writeFile(configPath, JSON.stringify({ 'fixture.alpha': { model: 'alpha-config' }, 'fixture.beta': { model: 'beta-config' } }))
+  const host = await startHostOrSkip(t, { packagePaths: packages, workspace: root, stateDir, configPath, port: 0 })
+  if (!host) return
+  t.after(() => host.close())
+  const base = `http://127.0.0.1:${host.address.port}`
+  const run = async (packageId, taskId, input) => {
+    const response = await fetch(`${base}/api/tasks`, { method: 'POST', headers: { origin: base, 'content-type': 'application/json' }, body: JSON.stringify({ packageId, taskId, sessionId: `${taskId}-session`, input }) })
+    assert.equal(response.status, 200)
+    const events = (await response.text()).trim().split('\n').map(line => JSON.parse(line))
+    return JSON.parse(events[0].text)
+  }
+
+  assert.deepEqual(await run('fixture.alpha', 'alpha-task', 'alpha input'), { id: 'fixture.alpha', input: 'alpha input', model: 'alpha-config', stateDir: path.join(stateDir, 'fixture.alpha') })
+  assert.deepEqual(await run('fixture.beta', 'beta-task', 'beta input'), { id: 'fixture.beta', input: 'beta input', model: 'beta-config', stateDir: path.join(stateDir, 'fixture.beta') })
+
+  const unloaded = await fetch(`${base}/api/packages/fixture.alpha/unload`, { method: 'POST', headers: { origin: base, 'content-type': 'application/json' }, body: '{}' })
+  assert.equal(unloaded.status, 200)
+  assert.deepEqual(await run('fixture.beta', 'beta-after-unload', 'still available'), { id: 'fixture.beta', input: 'still available', model: 'beta-config', stateDir: path.join(stateDir, 'fixture.beta') })
+  const unavailable = await fetch(`${base}/api/tasks`, { method: 'POST', headers: { origin: base, 'content-type': 'application/json' }, body: JSON.stringify({ packageId: 'fixture.alpha', taskId: 'alpha-after-unload', sessionId: 'session', input: 'should not run' }) })
+  assert.equal(unavailable.status, 409)
+})
+
 async function startHostOrSkip(t, options) {
   try { return await createHost(options) } catch (error) {
     if (error?.code === 'EPERM') { t.skip('Sandbox disallows loopback listening; rerun in the authorized host integration environment.'); return undefined }
