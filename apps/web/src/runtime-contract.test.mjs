@@ -20,6 +20,7 @@ test('execution needs an explicit selected runtime-ready package and a connected
   assert.equal(isRunnable(rows, 'other.agent', {}), false)
   assert.equal(isRunnable(rows, manifest.id, undefined), false)
   assert.equal(isRunnable(rows, manifest.id, {}), true)
+  assert.equal(isRunnable(rows, manifest.id, { connected: false }), false)
 })
 
 test('manifest parser rejects unsafe or incomplete package metadata', () => {
@@ -41,4 +42,18 @@ test('task events build assistant text from deltas and keep tool activity visibl
     { role: 'tool', text: 'lookup · "ok"' },
     { role: 'tool', text: 'Task cancelled' },
   ])
+})
+
+test('assistant replacement corrects a truncated streaming answer without discarding earlier turns', () => {
+  const turns = [
+    { role: 'user', text: 'question' },
+    { role: 'assistant', text: 'truncated head' },
+    { role: 'tool', text: 'tool detail' },
+  ]
+  assert.deepEqual(appendTaskEvent(turns, { type: 'assistant-replace', text: 'complete answer' }), [
+    { role: 'user', text: 'question' },
+    { role: 'assistant', text: 'complete answer' },
+    { role: 'tool', text: 'tool detail' },
+  ])
+  assert.deepEqual(appendTaskEvent([], { type: 'assistant-replace', text: 'complete answer' }), [{ role: 'assistant', text: 'complete answer' }])
 })

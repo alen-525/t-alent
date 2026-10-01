@@ -12,7 +12,7 @@ export function validateManifest(input) {
 export function registeredRecord(manifest) { return { manifest, runtimeReady: false } }
 
 export function isRunnable(packages, selectedId, adapter) {
-  return Boolean(adapter && selectedId && packages.some(item => item.manifest.id === selectedId && item.runtimeReady))
+  return Boolean(adapter && adapter.connected !== false && selectedId && packages.some(item => item.manifest.id === selectedId && item.runtimeReady))
 }
 
 export function appendTaskEvent(turns, event) {
@@ -21,6 +21,12 @@ export function appendTaskEvent(turns, event) {
     return last?.role === 'assistant'
       ? [...turns.slice(0, -1), { role: 'assistant', text: last.text + event.text }]
       : [...turns, { role: 'assistant', text: event.text }]
+  }
+  if (event.type === 'assistant-replace') {
+    const lastAssistant = turns.findLastIndex(turn => turn.role === 'assistant')
+    return lastAssistant < 0
+      ? [...turns, { role: 'assistant', text: event.text }]
+      : turns.map((turn, index) => index === lastAssistant ? { role: 'assistant', text: event.text } : turn)
   }
   if (event.type === 'tool-call') return [...turns, { role: 'tool', text: `${event.name} · ${JSON.stringify(event.input ?? '')}` }]
   if (event.type === 'tool-result') return [...turns, { role: 'tool', text: `${event.name} · ${JSON.stringify(event.output ?? '')}` }]

@@ -1,0 +1,3 @@
+# Empty package-owned Cordis layer. Per-task model settings are written to a
+# private generated overlay; caller patches are applied after that overlay.
+[]
