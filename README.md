@@ -1,5 +1,7 @@
 # t-alent
 
+[中文项目简要说明](项目说明.md)
+
 t-alent is a neutral agent framework: its web app supplies the conversation interface and shared task contract, while independently versioned agent packages own model and tool execution. Package code runs in the local Node host, not in the browser. A package is executable only when its local directory is explicitly passed to the host CLI.
 
 ## Run the web app and host
