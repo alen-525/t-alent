@@ -7,8 +7,9 @@ rl.on('line',line=>{
  let m; try{m=JSON.parse(line)}catch{return}
  if(log)appendFileSync(log,JSON.stringify(m)+'\n')
  if(m.id==='permission-approval'&&m.result){send({method:'item/agentMessage/delta',params:{delta:'permission request declined safely'}});send({method:'turn/completed',params:{threadId:'upstream-thread-1',turn:{id:'turn-1',status:'completed'}}});return}
- if(m.id!==undefined){
+  if(m.id!==undefined){
   if(m.method==='initialize'){send({id:m.id,result:{serverInfo:{name:'fake',version:'0'}}});return}
+  if(m.method==='model/list'){if(mode==='catalog-slow')return;if(log)appendFileSync(log,JSON.stringify({catalogEnvHasApiKey:Boolean(process.env.CODEX_API_KEY||process.env.OPENAI_API_KEY)})+'\n');send({id:m.id,result:{data:[{id:'picker-id',model:'catalog-model',displayName:'Catalog Model',description:'fixture model',hidden:false,isDefault:true}],nextCursor:null}});return}
   if(m.method==='account/login/start'){send({id:m.id,result:{}});return}
   if(m.method==='thread/start'||m.method==='thread/resume'){send({id:m.id,result:{thread:{id:'upstream-thread-1'}}});return}
   if(m.method==='turn/start'){

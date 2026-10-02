@@ -27,6 +27,7 @@ export async function createAgentPackageWithRuntime({ workspace, stateDir, env, 
   await Promise.all([mkdir(state, { recursive: true }), mkdir(home, { recursive: true })])
 
   const environment = { ...process.env, ...(env ?? {}) }
+  const configuredModel = config.model ?? environment.DEEPSEEK_MODEL
   environment.DSH_HOME = home
   const cancelGraceMs = Number.isSafeInteger(config.cancelGraceMs) && config.cancelGraceMs > 0
     ? Math.min(config.cancelGraceMs, 60_000)
@@ -36,22 +37,46 @@ export async function createAgentPackageWithRuntime({ workspace, stateDir, env, 
   let active = null
   let disposed = false
 
+  async function listModels() {
+    if (disposed) throw new Error('DeepSeek agent package is disposed')
+    const { deepSeekConfigFields } = await import('@deepseek-ai/dsh-llm-deepseek')
+    const models = deepSeekConfigFields.models.meta.default.map(({ id, name, description }) => ({
+      id,
+      ...(name ? { name } : {}),
+      ...(description ? { description } : {}),
+    }))
+    const result = { models, allowCustomModel: true }
+    // Caller patches are applied after the package model overlay and may change
+    // the actual default route. Do not publish a default that may be stale.
+    if (!Array.isArray(config.patches) || config.patches.length === 0) {
+      result.defaultModel = configuredModel === undefined
+        ? await readPackageDefaultModel()
+        : validateModel(configuredModel, 'configured model')
+    }
+    return result
+  }
+
   async function persistSessions() {
     const temporary = `${sessionsPath}.${process.pid}.${randomUUID()}.tmp`
     await writeFile(temporary, JSON.stringify(sessions), { mode: 0o600 })
     await rename(temporary, sessionsPath)
   }
 
-  function executeTask({ taskId, input, sessionId }, { signal } = {}) {
+  function executeTask({ taskId, input, sessionId, model }, { signal } = {}) {
     if (disposed) throw new Error('DeepSeek agent package is disposed')
     if (active) throw new Error(`DeepSeek agent package already has active task ${active.taskId}`)
     if (typeof taskId !== 'string' || !taskId) throw new TypeError('taskId is required')
     if (typeof input !== 'string' || !input.trim()) throw new TypeError('input is required')
+    const selectedModel = model === undefined
+      ? configuredModel === undefined ? undefined : validateModel(configuredModel, 'configured model')
+      : validateModel(model, 'task model')
 
     const conversationKey = String(sessionId || taskId)
     const queue = eventQueue()
     const task = {
       taskId,
+      model: selectedModel,
+      explicitlySelectedModel: model !== undefined,
       conversationKey,
       queue,
       child: null,
@@ -68,6 +93,7 @@ export async function createAgentPackageWithRuntime({ workspace, stateDir, env, 
       persistenceError: null,
       toolNames: new Map(),
       overlayPath: null,
+      selectionOverlayPath: null,
       secrets: Object.entries(environment)
         .filter(([key, value]) => /API_KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL/i.test(key) && typeof value === 'string' && value.length >= 4)
         .map(([, value]) => value),
@@ -123,10 +149,8 @@ export async function createAgentPackageWithRuntime({ workspace, stateDir, env, 
     let stderrBuffer = ''
     try {
       const upstreamSessionId = sessions[task.conversationKey]
-      const modelOverlay = await writeModelOverlay({ state, taskId: task.taskId, config: {
-        ...config,
-        model: config.model ?? env?.DEEPSEEK_MODEL,
-      } })
+      const model = task.model ?? await readPackageDefaultModel()
+      const modelOverlay = await writeModelOverlay({ state, taskId: task.taskId, config, model })
       task.overlayPath = modelOverlay
       const customPatches = Array.isArray(config.patches) ? config.patches : []
       const args = [
@@ -134,6 +158,7 @@ export async function createAgentPackageWithRuntime({ workspace, stateDir, env, 
         '--patch', resolve(packageDir, '../cordis.patch.yml'),
         '--patch', modelOverlay,
         ...customPatches.flatMap(path => ['--patch', resolve(root, path)]),
+        ...(task.explicitlySelectedModel ? ['--patch', task.selectionOverlayPath = await writeModelSelectionOverlay({ state, taskId: task.taskId, model: task.model })] : []),
         '--json',
         ...(upstreamSessionId ? ['--session-id', upstreamSessionId] : []),
         '-',
@@ -212,6 +237,7 @@ export async function createAgentPackageWithRuntime({ workspace, stateDir, env, 
     } finally {
       task.signalChildReady?.()
       if (task.overlayPath) await rm(task.overlayPath, { force: true }).catch(() => {})
+      if (task.selectionOverlayPath) await rm(task.selectionOverlayPath, { force: true }).catch(() => {})
       if (task.abortListener) task.signal?.removeEventListener('abort', task.abortListener)
       task.settled = true
       if (task.cancelling && !task.cancelEventSent) {
@@ -229,7 +255,7 @@ export async function createAgentPackageWithRuntime({ workspace, stateDir, env, 
     if (active) await cancelTask(active.taskId)
   }
 
-  return { executeTask, cancelTask, dispose }
+  return { listModels, executeTask, cancelTask, dispose }
 }
 
 function acceptJsonLine(task, line, callbacks) {
@@ -283,9 +309,8 @@ function acceptJsonLine(task, line, callbacks) {
   }
 }
 
-async function writeModelOverlay({ state, taskId, config }) {
+async function writeModelOverlay({ state, taskId, config, model }) {
   const provider = 'deepseek-official'
-  const model = config.model ?? config.env?.DEEPSEEK_MODEL ?? 'deepseek-flash'
   const agentConfig = { provider, model }
   if (config.reasoningEffort !== undefined) agentConfig.reasoningEffort = config.reasoningEffort
   const providerConfig = {}
@@ -299,6 +324,32 @@ async function writeModelOverlay({ state, taskId, config }) {
   const target = resolve(state, `deepseek-${safeFilePart(taskId)}-${randomUUID()}.patch.yml`)
   await writeFile(target, serialized, { mode: 0o600 })
   return target
+}
+
+async function writeModelSelectionOverlay({ state, taskId, model }) {
+  const content = [{
+    id: 'agent-default-model',
+    name: '@deepseek-ai/dsh-agent-default-model',
+    config: { provider: 'deepseek-official', model },
+  }]
+  const target = resolve(state, `deepseek-${safeFilePart(taskId)}-selection-${randomUUID()}.patch.yml`)
+  await writeFile(target, JSON.stringify(content, null, 2), { mode: 0o600 })
+  return target
+}
+
+function validateModel(value, source) {
+  if (typeof value !== 'string') throw new TypeError(`${source} must be a string`)
+  const model = value.trim()
+  if (model.length < 1 || model.length > 200) throw new TypeError(`${source} must contain 1–200 characters`)
+  return model
+}
+
+async function readPackageDefaultModel() {
+  const basePatch = await readFile(fileURLToPath(import.meta.resolve('@deepseek-ai/dsh-base/cordis.patch.yml')), 'utf8')
+  const row = basePatch.match(/(?:^|\n)\s*- id: agent-default-model\b([\s\S]*?)(?=\n\s*- id:|\s*$)/)?.[1]
+  const model = row?.match(/\n\s+model:\s*([^\s#]+)/)?.[1]
+  if (!model) throw new Error('Official DSH base package does not declare an agent default model')
+  return model
 }
 
 async function readSessionMap(path) {

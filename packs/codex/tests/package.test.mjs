@@ -6,10 +6,10 @@ import { spawn } from 'node:child_process'
 import test from 'node:test'
 import { createAgentPackageWithRuntime } from '../src/index.mjs'
 const fake=new URL('./fake-app-server.mjs',import.meta.url)
-async function fixture(t,mode='success',runtimeOverrides={}) {
+async function fixture(t,mode='success',runtimeOverrides={},config={}) {
  const root=await mkdtemp(join(tmpdir(),'codex-pack-')),workspace=join(root,'workspace'),stateDir=join(root,'state'),log=join(root,'calls.jsonl')
  await (await import('node:fs/promises')).mkdir(workspace)
- const agent=await createAgentPackageWithRuntime({workspace,stateDir,env:{CODEX_API_KEY:'secret-test-value',PACK_CODEX_MODE:mode,PACK_CODEX_LOG:log,EXTRA_SECRET_VALUE:'quoted-\"credential'},config:{}},{command:process.execPath,bin:fake.pathname,spawnProcess:spawn,...runtimeOverrides})
+ const agent=await createAgentPackageWithRuntime({workspace,stateDir,env:{CODEX_API_KEY:'secret-test-value',PACK_CODEX_MODE:mode,PACK_CODEX_LOG:log,EXTRA_SECRET_VALUE:'quoted-\"credential'},config},{command:process.execPath,bin:fake.pathname,spawnProcess:spawn,...runtimeOverrides})
  t.after(async()=>{await agent.dispose().catch(()=>{});await rm(root,{recursive:true,force:true})}); return {agent,root,workspace,stateDir,log}
 }
 async function collect(iterable){const a=[];for await(const e of iterable)a.push(e);return a}
@@ -24,6 +24,37 @@ test('maps App Server tool, delta and final events without repeating streamed te
  assert.equal(calls.find(c=>c.method==='turn/start').params.input[0].text,'inspect')
  assert.equal(calls.find(c=>c.method==='thread/start').params.approvalPolicy,'never')
  await agent.dispose()
+})
+test('discovers original App Server model slugs and forwards task model to new and resumed turns',async t=>{
+ const {agent,log}=await fixture(t,'success',{}, {model:'configured-model',codexConfig:{model:'nested-config-model',model_provider:'mock'}})
+ const [catalog,catalogAgain]=await Promise.all([agent.listModels(),agent.listModels()])
+ assert.deepEqual(catalogAgain,catalog)
+ assert.deepEqual(catalog.models,[{id:'catalog-model',name:'Catalog Model',description:'fixture model'}])
+ assert.equal(catalog.defaultModel,'configured-model');assert.equal(catalog.allowCustomModel,true)
+ await collect(agent.executeTask({taskId:'model-new',input:'new model',sessionId:'model-session',model:'explicit-task-model'}))
+ await collect(agent.executeTask({taskId:'model-resume',input:'resume model',sessionId:'model-session',model:'resume-task-model'}))
+ const calls=(await readFile(log,'utf8')).trim().split('\n').map(JSON.parse)
+ assert.equal(calls.filter(call=>call.method==='model/list').length,1)
+ assert.equal(calls.some(call=>call.catalogEnvHasApiKey),false,'catalog App Server must not inherit provider credentials')
+ assert.equal(calls.some(call=>call.method==='account/login/start'),true,'task execution still authenticates normally')
+ const started=calls.find(call=>call.method==='thread/start').params
+ const resumed=calls.find(call=>call.method==='thread/resume').params
+ const turns=calls.filter(call=>call.method==='turn/start').map(call=>call.params)
+ assert.equal(started.model,'explicit-task-model');assert.equal(resumed.model,'resume-task-model')
+ assert.equal(started.config.model,undefined);assert.equal(resumed.config.model,undefined)
+ assert.deepEqual(turns.map(params=>params.model),['explicit-task-model','resume-task-model'])
+ await agent.dispose()
+})
+test('disposal stops and awaits an in-flight catalog App Server',async t=>{
+ const {agent,log}=await fixture(t,'catalog-slow')
+ const pending=agent.listModels()
+ for(let attempt=0;attempt<100;attempt++){
+  try{if((await readFile(log,'utf8')).includes('model/list'))break}catch{}
+  await new Promise(resolveDelay=>setTimeout(resolveDelay,10))
+ }
+ assert.match(await readFile(log,'utf8'),/model\/list/)
+ await agent.dispose()
+ await assert.rejects(pending,/exited before returning its model catalog/)
 })
 test('persists and resumes host session mapping',async t=>{
  const {agent,stateDir,log}=await fixture(t)

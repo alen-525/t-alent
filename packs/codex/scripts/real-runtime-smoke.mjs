@@ -136,11 +136,11 @@ function createAgent() {
     config: runtimeConfig(),
   })
 }
-async function collectTask(agent, taskId, input, sessionId, controller = new AbortController()) {
+async function collectTask(agent, taskId, input, sessionId, controller = new AbortController(), model) {
   activeController = controller
   const events = []
   await withTimeout((async () => {
-    for await (const event of agent.executeTask({ taskId, input, sessionId }, { signal: controller.signal })) events.push(event)
+    for await (const event of agent.executeTask({ taskId, input, sessionId, ...(model ? { model } : {}) }, { signal: controller.signal })) events.push(event)
   })(), timeoutMs, `task ${taskId}`)
   activeController = null
   return events
@@ -158,22 +158,24 @@ try {
   currentAgent = await createAgent()
 
   logStage('real Codex shell tool reads a workspace file; transformed prompt reaches provider')
-  const first = await collectTask(currentAgent, 'first-read', 'SMOKE_FIRST_READ', 'smoke-conversation')
+  const first = await collectTask(currentAgent, 'first-read', 'SMOKE_FIRST_READ', 'smoke-conversation', undefined, 'codex-task-model')
   const shellCall = first.find(event => event.type === 'tool-call')
   assert.ok(shellCall && /sentinel\.txt/.test(shellCall.name), `expected original Codex shell tool event to run cat on the workspace file; got ${JSON.stringify(shellCall)}`)
   assert.ok(first.some(event => event.type === 'tool-result' && JSON.stringify(event).includes(sentinel)), 'expected original Codex shell result to contain file sentinel')
   assert.ok(first.some(event => event.type === 'assistant-replace' && event.text.includes(sentinel)), 'expected final answer to use the file contents')
   assert.ok(requestLog.some(({ body }) => JSON.stringify(body.input).includes('PROGRAM_TRANSFORMED: SMOKE_FIRST_READ')), 'provider must receive the program-transformed input')
+  assert.equal(requestLog.find(({ body }) => JSON.stringify(body.input).includes('SMOKE_FIRST_READ'))?.body.model, 'codex-task-model', 'explicit task model must reach the real Codex provider request')
   const toolFollowup = requestLog.find(({ body }) => JSON.stringify(body.input).includes(sentinel) && JSON.stringify(body.input).includes('function_call_output'))
   assert.ok(toolFollowup, 'second provider request must include Codex function_call_output containing the actual shell result')
   assertNoSecret(first)
 
   logStage('continue history in the same persistent App Server thread')
-  const second = await collectTask(currentAgent, 'second-turn', 'SMOKE_PERSISTED_SECOND_TURN', 'smoke-conversation')
+  const second = await collectTask(currentAgent, 'second-turn', 'SMOKE_PERSISTED_SECOND_TURN', 'smoke-conversation', undefined, 'codex-resume-task-model')
   assert.ok(second.some(event => event.type === 'assistant-replace' && event.text === 'PERSISTED_SECOND_TURN_OK'))
   const secondRequest = requestLog.find(({ body }) => JSON.stringify(body.input).includes('SMOKE_PERSISTED_SECOND_TURN'))
   assert.ok(secondRequest, 'expected provider call for the second turn')
   assert.ok(JSON.stringify(secondRequest.body.input).includes(sentinel), 'resumed model input should retain prior shell output/history')
+  assert.equal(secondRequest.body.model, 'codex-resume-task-model', 'explicit task model must override the resumed thread model')
 
   logStage('cancel a deliberately hanging provider request, then resume its conversation')
   activeController = new AbortController()

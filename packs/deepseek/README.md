@@ -28,7 +28,7 @@ try {
 }
 ```
 
-`DEEPSEEK_API_KEY` 由服务端环境提供，凭据不会放入包清单、生成的模型配置文件或返回事件。可用 `DEEPSEEK_BASE_URL` 指向兼容 Messages API 的服务。缺少密钥时，原 Harness 会返回错误。`DEEPSEEK_MODEL` 是模型默认值；`config.model` 优先。模型路由固定为 `deepseek-official`，默认模型为 `deepseek-flash`。`config.reasoningEffort`、`config.maxTokens` 和 `config.patches` 可覆盖推理强度、输出上限和 Cordis 配置。调用方 patch 按数组顺序应用，并覆盖包内生成的模型设置。
+`DEEPSEEK_API_KEY` 由服务端环境提供，凭据不会放入包清单、生成的模型配置文件或返回事件。可用 `DEEPSEEK_BASE_URL` 指向兼容 Messages API 的服务。缺少密钥时，原 Harness 会返回错误。通过 `await agent.listModels()` 获取固定官方 DSH 版本公布的模型目录、默认模型和 `allowCustomModel` 能力；目录直接读取 `@deepseek-ai/dsh-llm-deepseek@0.2.0-rc.2`，不在适配层维护模型 ID。当前上游目录含 `deepseek-flash` 和 `deepseek-v4-pro`，原版 provider 也会把未列出的自定义模型 ID 当作纯文本路由透传。`DEEPSEEK_MODEL` 提供模型默认值，`config.model` 优先；不带自定义 patch 时，`defaultModel` 反映这项配置，若有调用方 patch 则省略该字段，因为 patch 可能改写默认模型。任务可通过 `executeTask({ model })` 选择模型；它会去除首尾空白并要求 1–200 个字符，且优先于 `config.model`、`DEEPSEEK_MODEL` 及调用方 patch 中的默认模型。没有任务级选择时，`config.reasoningEffort`、`config.maxTokens` 和 `config.patches` 可覆盖推理强度、输出上限和 Cordis 配置，调用方 patch 按数组顺序应用。
 
 Harness home 固定在 `stateDir/dsh`。`stateDir/deepseek-sessions.json` 保存宿主 `sessionId`（缺省时为 `taskId`）到原版 Session id 的映射；使用相同宿主会话 id 时，原版 headless 会恢复持久历史。取消会先向原版 CLI 发送 SIGINT 并等待退出与 session 落盘，最多等待 7 秒，随后才使用 SIGKILL。`config.cancelGraceMs` 可将宽限期设为 1–60,000 毫秒。取消期间迟到的输出会被丢弃；任务结束后可以用相同会话 id 继续运行。
 

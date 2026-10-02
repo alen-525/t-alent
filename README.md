@@ -42,6 +42,8 @@ npm run host -- --package node_modules/@t-alent/agent-deepseek --package node_mo
 
 The DeepSeek package uses `DEEPSEEK_API_KEY`. The Codex package reads `CODEX_API_KEY` or `OPENAI_API_KEY`; see the [Codex package README](packs/codex/README.md) for its setup and configuration. Each package receives its own config entry and state directory. `codex.model` is optional; when omitted, the upstream Codex App Server chooses its default model. The framework does not assert a particular current model name.
 
+After selecting a loaded package in the web app, use the model selector beside the message input. The list comes from that package; “Use package default” keeps its configured/default model, and packages may allow a custom model ID. Changing models starts a new conversation, and the selector is locked while a task is running. The chosen model is sent to the package with each task; it is not a browser-only preference. Model availability still depends on the provider account.
+
 The Codex package adapts the official App Server protocol and preserves its upstream execution behavior at that boundary. This provides an original Codex Harness integration; it does not expose arbitrary source-level replacement of modules inside Codex's Rust execution loop. That deeper modularization remains planned work.
 
 The host listens on `127.0.0.1:8787`; Vite proxies same-origin `/api` requests to it. You can load more than one package by repeating `--package`. Other options are `--port 8787`, `--state-dir .talent`, and `--config path/to/packages.json`. Config is JSON keyed by package id, for example:
@@ -62,10 +64,12 @@ Each package owns its configuration shape and gets an isolated state directory u
 A package directory contains `agent-package.json` with `id`, `name`, `version`, and an `entry` path relative to that directory. The host validates that the resolved entry stays inside the package before importing it. The entry exports `createAgentPackage({ workspace, stateDir, env, config })` and returns a runtime implementing:
 
 ```js
-executeTask({ taskId, input, sessionId }, { signal }) // AsyncIterable<TaskEvent>
+executeTask({ taskId, input, sessionId, model }, { signal }) // AsyncIterable<TaskEvent>; model is optional
 cancelTask(taskId) // Promise<void>, resolves when that task has stopped
 dispose() // Promise<void>
 ```
+
+A package may also expose `listModels()` returning `{ models: [{ id, name?, description? }], defaultModel?, allowCustomModel? }`. The host serves it through `GET /api/packages/:id/models`. Packages without this optional capability retain their default behavior. `model` is an optional model ID override for one task; omitted means the package chooses its configured/default model.
 
 `sessionId` is the UI conversation id. A package maps it to any provider-specific session id it needs. The shared task event types live in `apps/web/src/host-adapter.ts`. Importing a JSON descriptor into the UI registers display metadata only; it does not activate code. The host CLI is the only package-code loading path.
 

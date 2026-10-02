@@ -101,19 +101,22 @@ const env = {
   DEEPSEEK_BASE_URL: `http://127.0.0.1:${address.port}`,
 }
 const agent = await createAgentPackage({ workspace, stateDir, env, config: { model: 'deepseek-flash' } })
+const taskModel = 'deepseek-v4-pro'
 
 try {
   process.stdout.write('smoke: original runtime tool/read-file roundtrip…\n')
-  const first = await collectWithTimeout(agent.executeTask({ taskId: 'read-roundtrip', input: 'READ_FILE: read probe.txt and report its contents', sessionId: 'smoke-conversation' }), 'read roundtrip')
+  const first = await collectWithTimeout(agent.executeTask({ taskId: 'read-roundtrip', input: 'READ_FILE: read probe.txt and report its contents', sessionId: 'smoke-conversation', model: taskModel }), 'read roundtrip')
   assert.equal(first.some(event => event.type === 'tool-call' && event.name === 'read'), true, 'original headless runtime should emit a read tool call')
   assert.equal(first.some(event => event.type === 'tool-result' && String(event.output).includes('LOCAL_READ_SENTINEL_93d26')), true, 'the original read tool should return the local file contents')
   assert.equal(first.findLast(event => event.type === 'assistant-replace')?.text.includes('LOCAL_READ_SENTINEL_93d26'), true, 'the final answer should include the tool result')
+  assert.deepEqual(requests.slice(0, 2).map(({ body }) => body.model), [taskModel, taskModel], 'each request in the selected task should use its task model')
 
   const sessionId = first.find(event => event.type === 'session')?.sessionId
   assert.ok(sessionId, 'headless JSON stream should publish its durable session id')
   process.stdout.write('smoke: second turn with persisted conversation history…\n')
-  const second = await collectWithTimeout(agent.executeTask({ taskId: 'second-turn', input: 'SECOND_TURN: Continue this conversation', sessionId: 'smoke-conversation' }), 'second turn')
+  const second = await collectWithTimeout(agent.executeTask({ taskId: 'second-turn', input: 'SECOND_TURN: Continue this conversation', sessionId: 'smoke-conversation', model: taskModel }), 'second turn')
   assert.equal(second.find(event => event.type === 'assistant-replace')?.text, 'Second task used the existing session.')
+  assert.equal(requests.at(-1)?.body.model, taskModel, 'a new task resuming the session should keep its selected model')
   const secondHistory = JSON.stringify(requests.at(-1)?.body.messages ?? [])
   assert.match(secondHistory, /READ_FILE/)
   assert.match(secondHistory, /tool_result/)

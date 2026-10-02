@@ -1,4 +1,4 @@
-import type { AgentPackageManifest, HostAdapter, TaskEvent } from './host-adapter'
+import type { AgentPackageManifest, HostAdapter, PackageModels, TaskEvent } from './host-adapter'
 
 type PackageRow = { manifest: AgentPackageManifest; runtimeReady: boolean }
 const metadata = new Map<string, AgentPackageManifest>()
@@ -27,6 +27,10 @@ export const hostClient: HostAdapter = {
   async uninstallPackage(id) {
     metadata.delete(id)
     if (connected) await request(`packages/${encodeURIComponent(id)}/unload`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
+  },
+  async listModels(packageId): Promise<PackageModels> {
+    const response = await request(`packages/${encodeURIComponent(packageId)}/models`)
+    return await response.json() as PackageModels
   },
   executeTask(task) {
     if (!task.input.trim()) throw new Error('Task input must not be empty.')

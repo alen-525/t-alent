@@ -34,6 +34,18 @@ export async function createAgentPackageWithRuntime({ workspace, stateDir, env =
   const sessions = await readMap(sessionsPath)
   const grace = bounded(config.cancelGraceMs, 7000, 1000, 60000)
   let active = null, disposed = false
+  const catalogChildren = new Set()
+  let catalogPromise = null
+
+  async function listModels() {
+    if (disposed) throw new Error('Codex agent package is disposed')
+    catalogPromise ??= queryModelCatalog(runtime, environment, root, catalogChildren)
+    try {
+      const catalog = await catalogPromise
+      const configuredModel = config.model ?? config.codexConfig?.model
+      return { ...catalog, ...(typeof configuredModel === 'string' ? { defaultModel: configuredModel } : {}) }
+    } finally { catalogPromise = null }
+  }
 
   async function persist() {
     const temp = `${sessionsPath}.${process.pid}.${randomUUID()}.tmp`
@@ -51,12 +63,12 @@ export async function createAgentPackageWithRuntime({ workspace, stateDir, env =
     if (typeof value !== 'string' || !value.trim()) throw new Error('Codex program transformInput must return non-empty text')
     return value
   }
-  function executeTask({ taskId, input, sessionId }, { signal } = {}) {
+  function executeTask({ taskId, input, sessionId, model }, { signal } = {}) {
     if (disposed) throw new Error('Codex agent package is disposed')
     if (active) throw new Error(`Codex agent package already has active task ${active.taskId}`)
     if (!taskId || typeof taskId !== 'string') throw new TypeError('taskId is required')
     if (typeof input !== 'string' || !input.trim()) throw new TypeError('input is required')
-    const task = makeTask({ taskId, sessionId: String(sessionId || taskId), input, signal, secrets })
+    const task = makeTask({ taskId, sessionId: String(sessionId || taskId), input, model: selectedModel(model, config.model ?? config.codexConfig?.model), signal, secrets })
     active = task
     task.finished = run(task)
     task.abort = () => { void cancelTask(taskId) }
@@ -112,13 +124,13 @@ export async function createAgentPackageWithRuntime({ workspace, stateDir, env =
       await task.request('account/login/start',{type:'apiKey',apiKey})
       const previous = sessions[task.sessionId]
       let thread
-      if (previous) thread = await task.request('thread/resume',resumeParams(previous,root,config))
-      else thread = await task.request('thread/start',threadParams(root,config))
+      if (previous) thread = await task.request('thread/resume',resumeParams(previous,root,config,task.model))
+      else thread = await task.request('thread/start',threadParams(root,config,task.model))
       task.threadId = thread.thread?.id ?? thread.threadId ?? thread.id
       if (typeof task.threadId !== 'string') throw new Error('Codex App Server thread response did not include a thread id')
       if (sessions[task.sessionId] !== task.threadId) { sessions[task.sessionId]=task.threadId; await persist() }
       task.queue.push({type:'session',sessionId:task.threadId})
-      const turn = await task.request('turn/start',turnParams(task.threadId,transformed,config,root))
+      const turn = await task.request('turn/start',turnParams(task.threadId,transformed,config,root,task.model))
       task.turnId = turn.turn?.id ?? turn.turnId ?? turn.id
       if (task.pendingTurnId && task.pendingTurnId !== task.turnId) throw new Error('Codex App Server started an unexpected turn')
       if (turn.turn?.status === 'completed') completion = true
@@ -145,8 +157,8 @@ export async function createAgentPackageWithRuntime({ workspace, stateDir, env =
       task.queue.finish(); if (active===task) active=null
     }
   }
-  async function dispose() { if (disposed) return; disposed=true; if(active) await cancelTask(active.taskId) }
-  return {executeTask,cancelTask,dispose}
+  async function dispose() { if (disposed) return; disposed=true; if(active) await cancelTask(active.taskId); await Promise.allSettled([...catalogChildren].map(stopCatalogChild)); await catalogPromise?.catch(()=>{}) }
+  return {executeTask,cancelTask,dispose,listModels}
 }
 
 function makeTask(base) {
@@ -375,9 +387,63 @@ function itemEvent(task, method, params) {
 }
 
 function sandboxPolicy(cwd){return {type:'workspaceWrite',writableRoots:[cwd],networkAccess:false,excludeTmpdirEnvVar:true,excludeSlashTmp:true}}
-function threadParams(cwd,config){return {cwd,approvalPolicy:'never',sandbox:'workspace-write',...(config.model?{model:config.model}:{}),...(config.instructions?{developerInstructions:config.instructions}:{}),...(config.codexConfig&&typeof config.codexConfig==='object'?{config:config.codexConfig}:{})}}
-function resumeParams(threadId,cwd,config){return {threadId,cwd,approvalPolicy:'never',sandbox:'workspace-write',...(config.model?{model:config.model}:{}),...(config.instructions?{developerInstructions:config.instructions}:{}),...(config.codexConfig&&typeof config.codexConfig==='object'?{config:config.codexConfig}:{})}}
-function turnParams(threadId,input,config,cwd){return {threadId,input:[{type:'text',text:input}],approvalPolicy:'never',sandboxPolicy:sandboxPolicy(cwd),...(config.model?{model:config.model}:{}),...(config.reasoningEffort?{effort:config.reasoningEffort}:{}),}}
+function selectedModel(taskModel,configuredModel){if(taskModel!==undefined&&(typeof taskModel!=='string'||!taskModel.trim()||taskModel.length>200))throw new TypeError('model must be a non-empty string up to 200 characters');return taskModel??configuredModel}
+function threadParams(cwd,config,model){const codexConfig=config.codexConfig&&typeof config.codexConfig==='object'?{...config.codexConfig}:null;if(model!==undefined&&codexConfig)delete codexConfig.model;return {cwd,approvalPolicy:'never',sandbox:'workspace-write',...(model?{model}:{}),...(config.instructions?{developerInstructions:config.instructions}:{}),...(codexConfig?{config:codexConfig}:{})}}
+function resumeParams(threadId,cwd,config,model){const codexConfig=config.codexConfig&&typeof config.codexConfig==='object'?{...config.codexConfig}:null;if(model!==undefined&&codexConfig)delete codexConfig.model;return {threadId,cwd,approvalPolicy:'never',sandbox:'workspace-write',...(model?{model}:{}),...(config.instructions?{developerInstructions:config.instructions}:{}),...(codexConfig?{config:codexConfig}:{})}}
+function turnParams(threadId,input,config,cwd,model){return {threadId,input:[{type:'text',text:input}],approvalPolicy:'never',sandboxPolicy:sandboxPolicy(cwd),...(model?{model}:{}),...(config.reasoningEffort?{effort:config.reasoningEffort}:{})}}
+
+async function queryModelCatalog(runtime,environment,cwd,children){
+  const catalogEnv={...environment}
+  delete catalogEnv.CODEX_API_KEY;delete catalogEnv.OPENAI_API_KEY
+  const child=runtime.spawnProcess(runtime.command,runtime.bin?[runtime.bin,'app-server','--listen','stdio://']:['app-server','--listen','stdio://'],{cwd,env:catalogEnv,shell:false,stdio:['pipe','pipe','pipe']})
+  children.add(child)
+  child.stdout.setEncoding('utf8')
+  let buffer='',requestId=0,done=false,pageCount=0,defaultModel
+  const pending=new Map(),models=[],cursors=new Set()
+  let resolveCatalog,rejectCatalog
+  const result=new Promise((resolveResult,rejectResult)=>{resolveCatalog=resolveResult;rejectCatalog=rejectResult})
+  const finish=(error,value)=>{if(done)return;done=true;clearTimeout(timer);if(error)rejectCatalog(error);else resolveCatalog(value);void stopCatalogChild(child).catch(()=>{})}
+  const send=(method,params={})=>{const id=++requestId;pending.set(id,{method});child.stdin.write(JSON.stringify({id,method,params})+'\n')}
+  const askPage=params=>send('model/list',params)
+  child.stdout.on('data',chunk=>{
+    buffer+=chunk
+    let newline
+    while((newline=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,newline);buffer=buffer.slice(newline+1);if(!line.trim())continue
+      let message;try{message=JSON.parse(line)}catch{finish(new Error('Codex App Server emitted malformed JSON while listing models'));return}
+      if(!message||typeof message!=='object'||Array.isArray(message)){finish(new Error('Codex App Server emitted malformed JSON-RPC while listing models'));return}
+      if(!Object.hasOwn(message,'id'))continue
+      const request=pending.get(message.id);if(!request)continue;pending.delete(message.id)
+      if(message.error){finish(new Error(`Codex App Server ${request.method} failed`));return}
+      const response=message.result??{}
+      if(request.method==='initialize'){
+        child.stdin.write(JSON.stringify({method:'initialized',params:{}})+'\n')
+        askPage({includeHidden:false});continue
+      }
+      if(request.method==='model/list'){
+        if(++pageCount>100){finish(new Error('Codex App Server model/list exceeded the page limit'));return}
+        if(!Array.isArray(response.data)){finish(new Error('Codex App Server model/list returned an invalid catalog'));return}
+        for(const entry of response.data){if(entry?.hidden===true||typeof entry?.model!=='string'||!entry.model)continue;models.push({id:entry.model,...(typeof entry.displayName==='string'?{name:entry.displayName}:{}),...(typeof entry.description==='string'?{description:entry.description}:{})});if(entry.isDefault===true)defaultModel=entry.model}
+        if(typeof response.nextCursor==='string'&&response.nextCursor){if(cursors.has(response.nextCursor)){finish(new Error('Codex App Server model/list returned a repeated cursor'));return}cursors.add(response.nextCursor);askPage({cursor:response.nextCursor,includeHidden:false});continue}
+        finish(null,{models,...(defaultModel?{defaultModel}:{}),allowCustomModel:true})
+      }
+    }
+  })
+  child.once('error',error=>finish(new Error(`Unable to start Codex App Server for model catalog: ${safeMessage(error)}`)))
+  child.once('close',()=>{if(!done)finish(new Error('Codex App Server exited before returning its model catalog'))})
+  child.stderr.on('data',()=>{})
+  child.stdin.on('error',()=>{})
+  const timer=setTimeout(()=>finish(new Error('Codex App Server model/list timed out')),12_000);timer.unref?.()
+  try{send('initialize',{clientInfo:{name:'t-alent',version:'0.1.0'}});return await result}
+  finally{await stopCatalogChild(child);children.delete(child)}
+}
+
+function stopCatalogChild(child){
+  if(!child)return
+  if(child.exitCode!==null||child.signalCode!==null)return Promise.resolve()
+  if(child.codexCatalogStopPromise)return child.codexCatalogStopPromise
+  child.codexCatalogStopPromise=(async()=>{const closed=new Promise(resolveClose=>child.once('close',resolveClose));child.stdin?.end();if(await raceClose(closed,500))return;child.kill('SIGTERM');if(await raceClose(closed,1000))return;child.kill('SIGKILL');await closed})()
+  return child.codexCatalogStopPromise
+}
 async function readMap(path){let data;try{data=JSON.parse(await readFile(path,'utf8'))}catch(e){if(e.code==='ENOENT')return Object.create(null);throw new Error(`Codex thread map is unreadable: ${e.message}`)}if(!data||typeof data!=='object'||Array.isArray(data)||Object.values(data).some(v=>typeof v!=='string'||!v))throw new Error('Codex thread map is malformed');return Object.assign(Object.create(null),data)}
 function queue(secrets=[]){
  const values=[],waiters=[];let ended=false

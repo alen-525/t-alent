@@ -77,6 +77,76 @@ test('task events are streamed and cancellation waits for the package task to fi
   assert.equal(reusedId.status, 409, 'task ids are unique for the lifetime of the host')
 })
 
+test('model selection is trimmed and passed to the package; omitted selection preserves the old input shape', async t => {
+  const runtime = `export function createAgentPackage() { return {
+    listModels() { return { models: [{ id: 'fast', name: 'Fast', description: 'Quick' }], defaultModel: 'fast', allowCustomModel: true } },
+    async *executeTask(args) { yield { type: 'assistant-delta', text: JSON.stringify(args) } },
+    async cancelTask() {}, async dispose() {},
+  } }`
+  const { pack, workspace } = await fixture(t, runtime)
+  const host = await startHostOrSkip(t, { packagePath: pack, workspace, port: 0 })
+  if (!host) return
+  t.after(() => host.close())
+  const base = `http://127.0.0.1:${host.address.port}`
+  const catalog = await fetch(`${base}/api/packages/test.fake/models`).then(response => response.json())
+  assert.deepEqual(catalog, { models: [{ id: 'fast', name: 'Fast', description: 'Quick' }], defaultModel: 'fast', allowCustomModel: true })
+  const run = async (taskId, extras = {}) => {
+    const response = await fetch(`${base}/api/tasks`, { method: 'POST', headers: { origin: base, 'content-type': 'application/json' }, body: JSON.stringify({ packageId: 'test.fake', taskId, sessionId: 'session', input: 'hello', ...extras }) })
+    return { response, args: JSON.parse(JSON.parse((await response.text()).trim().split('\n')[0]).text) }
+  }
+  const selected = await run('selected-model', { model: '  fast  ' })
+  assert.equal(selected.response.status, 200)
+  assert.deepEqual(selected.args, { taskId: 'selected-model', input: 'hello', sessionId: 'session', model: 'fast' })
+  const legacy = await run('legacy-model')
+  assert.equal(legacy.response.status, 200)
+  assert.deepEqual(legacy.args, { taskId: 'legacy-model', input: 'hello', sessionId: 'session' })
+})
+
+test('invalid model selections are rejected before execution', async t => {
+  const { pack, workspace } = await fixture(t, `globalThis.modelExecutions = 0; export function createAgentPackage() { return {
+    async *executeTask() { globalThis.modelExecutions++; yield { type: 'assistant-complete' } },
+    async cancelTask() {}, async dispose() {},
+  } }`)
+  const host = await startHostOrSkip(t, { packagePath: pack, workspace, port: 0 })
+  if (!host) return
+  t.after(() => host.close())
+  const base = `http://127.0.0.1:${host.address.port}`
+  for (const [taskId, model] of [['blank-model', '  '], ['long-model', 'm'.repeat(201)], ['number-model', 17], ['null-model', null]]) {
+    const response = await fetch(`${base}/api/tasks`, { method: 'POST', headers: { origin: base, 'content-type': 'application/json' }, body: JSON.stringify({ packageId: 'test.fake', taskId, sessionId: 'session', input: 'hello', model }) })
+    assert.equal(response.status, 400)
+    await response.text()
+  }
+  assert.equal(globalThis.modelExecutions, 0)
+})
+
+test('packages without model listing use the empty catalog fallback and catalog errors do not expose details', async t => {
+  const { root, pack, workspace } = await fixture(t, fakeRuntime)
+  const failingPack = path.join(root, 'failing-pack')
+  await mkdir(failingPack)
+  await writeFile(path.join(failingPack, 'agent-package.json'), JSON.stringify({ id: 'test.failing', name: 'Failing', version: '1.0.0', entry: 'index.mjs' }))
+  await writeFile(path.join(failingPack, 'index.mjs'), `export function createAgentPackage() { return { listModels() { throw new Error('SECRET_ENV_VALUE') }, async *executeTask() {}, async cancelTask() {}, async dispose() {} } }`)
+  const invalidPack = path.join(root, 'invalid-pack')
+  await mkdir(invalidPack)
+  await writeFile(path.join(invalidPack, 'agent-package.json'), JSON.stringify({ id: 'test.invalid', name: 'Invalid', version: '1.0.0', entry: 'index.mjs' }))
+  await writeFile(path.join(invalidPack, 'index.mjs'), `export function createAgentPackage() { return { listModels() { return { models: [{ id: 'model-a' }, { id: ' model-a ' }] } }, async *executeTask() {}, async cancelTask() {}, async dispose() {} } }`)
+  const host = await startHostOrSkip(t, { packagePaths: [pack, failingPack, invalidPack], workspace, port: 0 })
+  if (!host) return
+  t.after(() => host.close())
+  const base = `http://127.0.0.1:${host.address.port}`
+  const fallback = await fetch(`${base}/api/packages/test.fake/models`)
+  assert.equal(fallback.status, 200)
+  assert.deepEqual(await fallback.json(), { models: [], allowCustomModel: false })
+  const failed = await fetch(`${base}/api/packages/test.failing/models`)
+  assert.equal(failed.status, 500)
+  const body = await failed.text()
+  assert.match(body, /Unable to load model catalog/)
+  assert.doesNotMatch(body, /SECRET_ENV_VALUE/)
+  const invalid = await fetch(`${base}/api/packages/test.invalid/models`)
+  assert.equal(invalid.status, 500, 'duplicate ids after trimming invalidate the model catalog')
+  assert.deepEqual(await invalid.json(), { error: 'Unable to load model catalog.' })
+  assert.equal((await fetch(`${base}/api/packages/not-loaded/models`)).status, 404)
+})
+
 test('unloading a package cancels its live task and disposes only that package', async t => {
   const { pack, workspace } = await fixture(t, `globalThis.unloadLifecycle = { cancel: 0, dispose: 0 }; let release; export function createAgentPackage() { return {
     executeTask() { return (async function* () { yield { type: 'assistant-delta', text: 'started' }; await new Promise(resolve => { release = resolve }) })() },
@@ -128,6 +198,7 @@ test('two packages keep config and state isolated, route by id, and survive the 
     await mkdir(pack)
     await writeFile(path.join(pack, 'agent-package.json'), JSON.stringify({ id, name: id, version: '1.0.0', entry: 'index.mjs' }))
     await writeFile(path.join(pack, 'index.mjs'), `export function createAgentPackage({ stateDir, config }) { return {
+      listModels() { return { models: [{ id: ${JSON.stringify(`${id}-model`)} }], defaultModel: ${JSON.stringify(`${id}-model`)} } },
       async *executeTask({ input }) { yield { type: 'assistant-delta', text: JSON.stringify({ id: ${JSON.stringify(id)}, input, model: config.model, stateDir }) } },
       async cancelTask() {}, async dispose() {},
     } }`)
@@ -140,6 +211,8 @@ test('two packages keep config and state isolated, route by id, and survive the 
   if (!host) return
   t.after(() => host.close())
   const base = `http://127.0.0.1:${host.address.port}`
+  assert.deepEqual(await fetch(`${base}/api/packages/fixture.alpha/models`).then(response => response.json()), { models: [{ id: 'fixture.alpha-model' }], defaultModel: 'fixture.alpha-model', allowCustomModel: false })
+  assert.deepEqual(await fetch(`${base}/api/packages/fixture.beta/models`).then(response => response.json()), { models: [{ id: 'fixture.beta-model' }], defaultModel: 'fixture.beta-model', allowCustomModel: false })
   const run = async (packageId, taskId, input) => {
     const response = await fetch(`${base}/api/tasks`, { method: 'POST', headers: { origin: base, 'content-type': 'application/json' }, body: JSON.stringify({ packageId, taskId, sessionId: `${taskId}-session`, input }) })
     assert.equal(response.status, 200)

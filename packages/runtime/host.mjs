@@ -140,6 +140,34 @@ export async function createHost({ packagePath, packagePaths, workspace, stateDi
     const url = new URL(req.url ?? '/', 'http://127.0.0.1')
     if (!isLoopbackRequest(req)) return json(res, 403, { error: 'Loopback requests only.' })
     if (req.method === 'GET' && url.pathname === '/api/packages') return json(res, 200, { packages: [...packages.values()].map(({ manifest }) => ({ manifest, runtimeReady: true })) })
+    if (req.method === 'GET' && url.pathname.startsWith('/api/packages/') && url.pathname.endsWith('/models')) {
+      let id
+      try { id = decodeURIComponent(url.pathname.slice('/api/packages/'.length, -'/models'.length)) } catch { return json(res, 400, { error: 'Invalid package id.' }) }
+      const loaded = packages.get(id)
+      if (!loaded) return json(res, 404, { error: 'Package is not loaded.' })
+      if (unloading.has(id)) return json(res, 409, { error: 'Package is unloading.' })
+      if (typeof loaded.runtime.listModels !== 'function') return json(res, 200, { models: [], allowCustomModel: false })
+      try {
+        const catalog = await loaded.runtime.listModels()
+        if (!catalog || typeof catalog !== 'object' || Array.isArray(catalog) || !Array.isArray(catalog.models) || catalog.models.length > 1000) throw new Error('Invalid model catalog.')
+        const ids = new Set()
+        const models = catalog.models.map(model => {
+          if (!model || typeof model !== 'object' || Array.isArray(model) || typeof model.id !== 'string' || !model.id.trim()) throw new Error('Invalid model entry.')
+          const id = model.id.trim()
+          if (id.length > 200 || ids.has(id)) throw new Error('Invalid model entry.')
+          ids.add(id)
+          return { id, ...(typeof model.name === 'string' ? { name: model.name.slice(0, 200) } : {}), ...(typeof model.description === 'string' ? { description: model.description.slice(0, 2000) } : {}) }
+        })
+        let defaultModel
+        if (catalog.defaultModel !== undefined) {
+          if (typeof catalog.defaultModel !== 'string' || !catalog.defaultModel.trim() || catalog.defaultModel.trim().length > 200) throw new Error('Invalid default model.')
+          defaultModel = catalog.defaultModel.trim()
+        }
+        return json(res, 200, { models, ...(defaultModel === undefined ? {} : { defaultModel }), allowCustomModel: catalog.allowCustomModel === true })
+      } catch {
+        return json(res, 500, { error: 'Unable to load model catalog.' })
+      }
+    }
     if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { connected: true })
     if (req.method === 'POST' && url.pathname.startsWith('/api/packages/') && url.pathname.endsWith('/unload')) {
       if (!sameOriginRequest(req)) return json(res, 403, { error: 'Same-origin requests are required.' })
@@ -174,6 +202,11 @@ export async function createHost({ packagePath, packagePaths, workspace, stateDi
     const { packageId, input, sessionId, taskId } = body
     if (typeof packageId !== 'string' || !packages.has(packageId) || unloading.has(packageId)) return json(res, 409, { error: 'No explicitly loaded package matches packageId.' })
     if (typeof input !== 'string' || !input.trim()) return json(res, 400, { error: 'Task input must not be empty.' })
+    let model
+    if (Object.hasOwn(body, 'model')) {
+      if (typeof body.model !== 'string' || !body.model.trim() || body.model.trim().length > 200) return json(res, 400, { error: 'model must be a non-empty string of at most 200 characters.' })
+      model = body.model.trim()
+    }
     if (typeof taskId !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(taskId) || seenTaskIds.has(taskId)) return json(res, 409, { error: 'taskId must be unique and valid.' })
     const { runtime } = packages.get(packageId)
     if ([...tasks.values()].some(task => task.runtime === runtime)) return json(res, 409, { error: 'This package already has an active task.' })
@@ -186,7 +219,7 @@ export async function createHost({ packagePath, packagePaths, workspace, stateDi
     const write = event => { if (!res.destroyed && !res.writableEnded) res.write(JSON.stringify(event) + '\n') }
     task.done = (async () => {
       try {
-        const iterable = await runtime.executeTask({ taskId, input, sessionId }, { signal: task.controller.signal })
+        const iterable = await runtime.executeTask({ taskId, input, sessionId, ...(model === undefined ? {} : { model }) }, { signal: task.controller.signal })
         for await (const event of iterable) {
           if (responseClosed) break
           write(event)
