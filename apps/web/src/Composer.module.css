@@ -6,9 +6,11 @@
 .input{box-sizing:border-box;min-height:52px;max-height:180px;width:100%;resize:vertical;padding:4px 8px 0 14px;border:0;outline:0;background:transparent;color:inherit;font:inherit;line-height:inherit;white-space:pre-wrap;overflow-wrap:anywhere}
 .input::placeholder{color:var(--talent-muted)}
 .input:disabled{cursor:not-allowed}
-.modelArea{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 8px 0;color:var(--talent-muted);font-size:12px}
+.modelArea{display:flex;align-items:center;gap:6px;min-width:0;flex:1;color:var(--talent-muted);font-size:12px}
 .modelLabel{font-weight:600;color:var(--talent-text,var(--talent-muted))}
-.modelSelect,.modelInput{min-width:170px;max-width:100%;padding:6px 9px;border:1px solid var(--talent-line);border-radius:9px;background:var(--talent-surface);color:inherit;font:inherit}
+.modelSelect,.modelInput{min-width:0;max-width:100%;padding:5px 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit}
+.modelSelect:hover:not(:disabled),.modelInput:focus{border-color:var(--talent-line);background:var(--talent-surface)}
+.modelSelect{flex:1;width:0}
 .modelInput{flex:1}
 .modelSelect:disabled,.modelInput:disabled{opacity:.6;cursor:not-allowed}
 .modelHint{flex-basis:100%;color:var(--talent-muted)}
@@ -16,11 +18,8 @@
 .modelError button{border:0;background:transparent;color:inherit;text-decoration:underline;cursor:pointer;font:inherit;white-space:nowrap}
 .modelError button:disabled{opacity:.5;cursor:default}
 .row{display:flex;align-items:center;gap:8px;min-width:0;padding:2px 4px 0}
-.add{display:grid;place-items:center;flex:none;width:28px;height:28px;border:0;border-radius:999px;background:var(--talent-sidebar);color:var(--talent-muted);cursor:pointer}
-.add:disabled{opacity:.5;cursor:default}
-.trailing{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;flex:1}
-.status{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--talent-muted);font-size:11px}
+.trailing{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0;margin-left:auto}
 .primary{display:grid;place-items:center;flex:none;width:34px;height:34px;border:0;border-radius:999px;background:var(--talent-accent);color:#fff;cursor:pointer;transition:background-color 100ms ease}
 .primary:disabled{background:#c9cbd2;cursor:not-allowed}
 .primary:hover:not(:disabled){filter:brightness(1.06)}
-@media(max-width:620px){.root{padding-left:14px;padding-right:14px}.card{border-radius:18px}}
+@media(max-width:620px){.root{padding-left:14px;padding-right:14px}.card{border-radius:18px}.modelLabel{display:none}}
