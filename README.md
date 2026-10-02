@@ -80,3 +80,9 @@ The host has no package-name branches or built-in fallback. Without a selected, 
 Run `npm run build`, `npm run typecheck`, `npm run test:runtime`, and `npm run test:pack`. `npm test` combines the runtime and package suites. Runtime HTTP integration tests bind loopback; restricted sandboxes may skip those checks when the OS returns `EPERM`.
 
 `Reference/` contains local reference materials and is not included in this repository.
+
+## License
+
+t-alent is open source under the [MIT License](LICENSE). Reused DeepSeek Harness UI source retains its [upstream MIT notice](LICENSE.DeepSeek); see the [migration notes](apps/web/MIGRATION.md) for attribution. The Montserrat font retains its [SIL Open Font License](apps/web/src/Montserrat-OFL.txt).
+
+Agent packages preserve their own and their dependencies' licenses: [DeepSeek notices](packs/deepseek/THIRD-PARTY-NOTICES.md) and [Codex notices](packs/codex/THIRD-PARTY-NOTICES.md).
