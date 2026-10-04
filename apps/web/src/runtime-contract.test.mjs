@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { appendTaskEvent, isRunnable, registeredRecord, validateManifest } from './runtime-contract.js'
+import { appendTaskEvent, isRunnable, registeredRecord, supportsModel, validateManifest, validateModelCatalog } from './runtime-contract.js'
 
 const manifest = { id: 'acme.agent', name: 'Acme Agent', version: '1.0.0' }
 
@@ -27,6 +27,25 @@ test('manifest parser rejects unsafe or incomplete package metadata', () => {
   assert.throws(() => validateManifest({ ...manifest, id: '../escape' }), /id must/)
   assert.throws(() => validateManifest({ ...manifest, name: ' ' }), /name must/)
   assert.throws(() => validateManifest('{"id":"x"}'), /JSON object/)
+})
+
+test('manifest model protocol capabilities are preserved and drive compatibility', () => {
+  const capable = validateManifest({ ...manifest, modelProtocols: ['responses', 'chat-completions'] })
+  assert.deepEqual(capable.modelProtocols, ['responses', 'chat-completions'])
+  assert.equal(supportsModel(capable, { protocol: 'responses' }), true)
+  assert.equal(supportsModel(capable, { protocol: 'legacy' }), false)
+  assert.equal(supportsModel(validateManifest(manifest), { protocol: 'legacy' }), true)
+  assert.throws(() => validateManifest({ ...manifest, modelProtocols: [''] }), /modelProtocols/)
+})
+
+test('model catalog accepts only safe public profiles and an explicit external default', () => {
+  assert.deepEqual(validateModelCatalog({ models: [{ id: 'gateway/openai/gpt-x', name: 'Fast', provider: 'gateway', model: 'gpt-x', protocol: 'responses' }], defaultModelId: 'gateway/openai/gpt-x' }), {
+    models: [{ id: 'gateway/openai/gpt-x', name: 'Fast', provider: 'gateway', model: 'gpt-x', protocol: 'responses' }],
+    defaultModelId: 'gateway/openai/gpt-x',
+  })
+  assert.throws(() => validateModelCatalog({ models: {} }), /invalid model catalog/)
+  assert.throws(() => validateModelCatalog({ models: [{ id: 'leak', provider: 'p', model: 'm', protocol: 'x', apiKeyEnv: 'SECRET' }] }), /invalid model profile/)
+  assert.throws(() => validateModelCatalog({ models: [{ id: '', provider: 'p', model: 'm', protocol: 'x' }] }), /invalid model profile/)
 })
 
 test('task events build assistant text from deltas and keep tool activity visible', () => {

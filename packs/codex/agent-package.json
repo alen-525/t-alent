@@ -2,7 +2,8 @@
   "id": "codex",
   "name": "Codex Agent",
   "version": "0.1.0",
-  "description": "使用原版 Codex Harness，支持 GPT 模型、工具执行和会话恢复。",
+  "description": "使用原版 Codex Harness 执行 Responses 协议模型，保留工具循环与会话恢复；模型路由由宿主 profile 提供。",
+  "modelProtocols": ["openai-responses"],
   "entry": "src/index.mjs",
   "upstream": {
     "package": "@openai/codex",

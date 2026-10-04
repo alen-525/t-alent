@@ -2,32 +2,72 @@
 
 [中文项目简要说明](项目说明.md)
 
-t-alent is a neutral agent framework: its web app supplies the conversation interface and shared task contract, while independently versioned agent packages own model and tool execution. Package code runs in the local Node host, not in the browser. A package is executable only when its local directory is explicitly passed to the host CLI.
+t-alent is a neutral agent framework. Agent packages define Harness behavior: execution loops, prompts, tools, context, and session strategy. Models are configured separately and supplied to the selected Harness by the local host. Package code runs in Node, not in the browser. A loaded package and an independently configured model must both be selected to run a task.
 
-## Run the web app and host
+## Run
 
-Install workspace dependencies once, then run the web app:
+Install dependencies, copy the independent model configuration example, and edit its model IDs and credential environment-variable references for your account:
 
 ```sh
 npm install
+cp config/models.example.json config/models.local.json
 npm run dev
 ```
 
-In another terminal, explicitly select the trusted local packages you want to run and a workspace that their tools may access. The two reference packages can be loaded together:
+In another terminal, explicitly load trusted packages, the model file, and a workspace:
 
 ```sh
-npm run host -- --package ./packs/deepseek --package ./packs/codex --workspace /path/to/workspace
+npm run host -- --package ./packs/deepseek --package ./packs/codex --models config/models.local.json --workspace /path/to/workspace
 ```
 
-To load a local `.env` file with Node 26, run the host directly:
+Credentials come from the host process environment. The framework does not load `.env` automatically. To use a local `.env` file with Node 26:
 
 ```sh
-node --env-file=.env packages/runtime/cli.mjs --package ./packs/deepseek --package ./packs/codex --workspace .
+node --env-file=.env packages/runtime/cli.mjs --package ./packs/deepseek --package ./packs/codex --models config/models.local.json --workspace .
 ```
 
-The framework does not load `.env` automatically. Copy `.env.example` to `.env`, replace the placeholder with your key, and keep that file local.
+Copy `.env.example` to `.env` and replace its placeholders. Keep credentials local; model JSON contains variable names, never keys.
 
-The DeepSeek and Codex packages are separate npm workspaces and can be packed and distributed independently. To make both tarballs:
+## Independent models
+
+The model file belongs to the host, independently of Agent packages:
+
+```json
+{
+  "models": [
+    {
+      "id": "my-responses-model",
+      "name": "My model",
+      "provider": "openai",
+      "model": "your-model-id",
+      "protocol": "openai-responses",
+      "apiKeyEnv": "OPENAI_API_KEY"
+    }
+  ]
+}
+```
+
+`id` identifies the profile in the UI; `model` is the upstream model ID. `provider` names the provider, `protocol` identifies its adapter, and `apiKeyEnv` refers to a credential in the host environment. Optional `baseUrl` specifies a compatible endpoint. Optional `defaultModelId` explicitly selects a host-configured default profile; without it, the user selects a model. No model file is loaded automatically. Restart the host after changing it.
+
+Choose a Harness and model independently. The model selector and Models page use the host's global registry. Changing packages preserves the selected model; changing either selection starts a new conversation. Selection is locked while a task runs. Incompatible protocols are rejected rather than silently changing the model: the current DeepSeek Harness adapter supports `deepseek`, and Codex supports `openai-responses`. Model names alone do not guarantee protocol, tool support, or account availability.
+
+Migration: move model names, endpoints, and credential references out of package config into the model file. Package model catalogs, package-default selection, and temporary custom-ID input have been removed. Tasks must select a registered profile.
+
+## Harness packages
+
+The DeepSeek package runs the official DSH headless Harness. The Codex package adapts the official App Server and preserves its execution behavior at that boundary. Codex Rust internal module replacement and the general composition SDK remain planned work. Setup and behavior customization: [DeepSeek](packs/deepseek/README.md), [Codex](packs/codex/README.md).
+
+The host listens on `127.0.0.1:8787`; Vite proxies same-origin `/api` requests to it. Repeat `--package` to load multiple packages. Other options include `--port`, `--state-dir`, and `--config`. Harness config is JSON keyed by package ID and contains behavior settings:
+
+```json
+{
+  "deepseek": { "reasoningEffort": "high" }
+}
+```
+
+Each package has its own behavior config and state directory. Model settings are supplied per task from the independent registry. Importing a JSON package descriptor in the UI registers metadata only; the host CLI explicitly loads executable code.
+
+Packages are independent npm workspaces and can be distributed separately:
 
 ```sh
 mkdir -p dist/packages
@@ -35,56 +75,30 @@ npm pack --workspace packs/deepseek --pack-destination dist/packages
 npm pack --workspace packs/codex --pack-destination dist/packages
 ```
 
-Install the desired package tarballs in a host project (both are shown here), then pass their installed directories explicitly:
+Install the desired tarballs in a host project, then pass the installed package directories with `--package`, your model file with `--models`, and a workspace with `--workspace`.
 
-```sh
-npm install ./dist/packages/t-alent-agent-deepseek-0.1.0.tgz ./dist/packages/t-alent-agent-codex-0.1.0.tgz
-npm run host -- --package node_modules/@t-alent/agent-deepseek --package node_modules/@t-alent/agent-codex --workspace /path/to/workspace
-```
+## Package contract
 
-The DeepSeek package uses `DEEPSEEK_API_KEY`. The Codex package reads `CODEX_API_KEY` or `OPENAI_API_KEY`; see the [Codex package README](packs/codex/README.md) for its setup and configuration. Each package receives its own config entry and state directory. `codex.model` is optional; when omitted, the upstream Codex App Server chooses its default model. The framework does not assert a particular current model name.
-
-After selecting a loaded package in the web app, use the model selector beside the message input. The list comes from that package; “Use package default” keeps its configured/default model, and packages may allow a custom model ID. Changing models starts a new conversation, and the selector is locked while a task is running. The chosen model is sent to the package with each task; it is not a browser-only preference. Model availability still depends on the provider account.
-
-The Codex package adapts the official App Server protocol and preserves its upstream execution behavior at that boundary. This provides an original Codex Harness integration; it does not expose arbitrary source-level replacement of modules inside Codex's Rust execution loop. That deeper modularization remains planned work.
-
-The host listens on `127.0.0.1:8787`; Vite proxies same-origin `/api` requests to it. You can load more than one package by repeating `--package`. Other options are `--port 8787`, `--state-dir .talent`, and `--config path/to/packages.json`. Config is JSON keyed by package id, for example:
-
-```json
-{
-  "deepseek": {
-    "model": "deepseek-flash",
-    "reasoningEffort": "high"
-  }
-}
-```
-
-Each package owns its configuration shape and gets an isolated state directory under the selected state root. Provider credentials such as `DEEPSEEK_API_KEY`, `CODEX_API_KEY`, and `OPENAI_API_KEY` are read from the host process environment; they are never sent to the browser. Copy `.env.example` as a reminder of the expected variables, then supply the keys needed by the loaded packages in the host process environment.
-
-## Agent package contract
-
-A package directory contains `agent-package.json` with `id`, `name`, `version`, and an `entry` path relative to that directory. The host validates that the resolved entry stays inside the package before importing it. The entry exports `createAgentPackage({ workspace, stateDir, env, config })` and returns a runtime implementing:
+`agent-package.json` contains `id`, `name`, `version`, `entry`, and optional `modelProtocols`. The host checks that the entry resolves inside the package before importing it. The entry exports `createAgentPackage({ workspace, stateDir, env, config })`, returning:
 
 ```js
-executeTask({ taskId, input, sessionId, model }, { signal }) // AsyncIterable<TaskEvent>; model is optional
-cancelTask(taskId) // Promise<void>, resolves when that task has stopped
-dispose() // Promise<void>
+executeTask({ taskId, input, sessionId, model }, { signal }) // AsyncIterable<TaskEvent>; model is a required external profile
+cancelTask(taskId) // resolves after the task stops
+dispose()
 ```
 
-A package may also expose `listModels()` returning `{ models: [{ id, name?, description? }], defaultModel?, allowCustomModel? }`. The host serves it through `GET /api/packages/:id/models`. Packages without this optional capability retain their default behavior. `model` is an optional model ID override for one task; omitted means the package chooses its configured/default model.
+`GET /api/models` returns the global registry without credentials. The browser submits `modelId` to `POST /api/tasks`; the host resolves the profile and passes it as `model` to the runtime. Packages adapt the profile to their original Harness and do not provide model catalogs or choose package/provider default models.
 
-`sessionId` is the UI conversation id. A package maps it to any provider-specific session id it needs. The shared task event types live in `apps/web/src/host-adapter.ts`. Importing a JSON descriptor into the UI registers display metadata only; it does not activate code. The host CLI is the only package-code loading path.
+`sessionId` identifies the UI conversation. Packages map it to upstream state and keep model routes separate. Shared presentation event types live in `apps/web/src/host-adapter.ts`.
 
-The host has no package-name branches or built-in fallback. Without a selected, loaded package, tasks remain disabled. It accepts loopback traffic only, requires same-origin JSON for mutations, and does not expose provider environment variables through its API. Workspace access is granted by the user who starts the host; package tools should act only in response to submitted tasks.
+The host has no package-name branches or executable fallback. Without a selected loaded package and registered model, tasks remain disabled. It accepts loopback requests, requires same-origin JSON for mutations, and never exposes provider credential values. The user grants workspace access when starting the host; package code is trusted local code.
 
 ## Checks
 
-Run `npm run build`, `npm run typecheck`, `npm run test:runtime`, and `npm run test:pack`. `npm test` combines the runtime and package suites. Runtime HTTP integration tests bind loopback; restricted sandboxes may skip those checks when the OS returns `EPERM`.
+`npm run build` and `npm test` cover the frontend build, runtime contract, host, and package adapters. Host integration tests bind loopback; a sandbox may skip them on `EPERM`, so use an authorized local environment for the full suite. Package `smoke:mock` scripts drive original runtimes against local mock services without paid model calls.
 
-`Reference/` contains local reference materials and is not included in this repository.
+`Reference/` contains local source references and is excluded from the repository.
 
 ## License
 
-t-alent is open source under the [MIT License](LICENSE). Reused DeepSeek Harness UI source retains its [upstream MIT notice](LICENSE.DeepSeek); see the [migration notes](apps/web/MIGRATION.md) for attribution. The Montserrat font retains its [SIL Open Font License](apps/web/src/Montserrat-OFL.txt).
-
-Agent packages preserve their own and their dependencies' licenses: [DeepSeek notices](packs/deepseek/THIRD-PARTY-NOTICES.md) and [Codex notices](packs/codex/THIRD-PARTY-NOTICES.md).
+t-alent uses the [MIT License](LICENSE). Reused DeepSeek UI code retains its [MIT notice](LICENSE.DeepSeek); see [migration notes](apps/web/MIGRATION.md). Montserrat retains its [SIL Open Font License](apps/web/src/Montserrat-OFL.txt). Package dependencies preserve their licenses: [DeepSeek notices](packs/deepseek/THIRD-PARTY-NOTICES.md), [Codex notices](packs/codex/THIRD-PARTY-NOTICES.md).

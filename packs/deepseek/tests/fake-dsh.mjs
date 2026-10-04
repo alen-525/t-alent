@@ -5,7 +5,7 @@ const flag = name => args.indexOf(name) < 0 ? undefined : args[args.indexOf(name
 if (process.env.PACK_TEST_ARGS_FILE) {
   const patchPaths = args.flatMap((value, index) => value === '--patch' ? [args[index + 1]] : [])
   const patches = await Promise.all(patchPaths.map(path => readFile(path, 'utf8')))
-  await writeFile(process.env.PACK_TEST_ARGS_FILE, JSON.stringify({ args, patches }))
+  await writeFile(process.env.PACK_TEST_ARGS_FILE, JSON.stringify({ args, patches, mappedKeyMatches: process.env.DEEPSEEK_API_KEY === 'never-event-this-secret', originalProfileKeyAbsent: process.env.PACK_PROFILE_KEY === undefined }))
 }
 let input = ''
 for await (const chunk of process.stdin) input += chunk

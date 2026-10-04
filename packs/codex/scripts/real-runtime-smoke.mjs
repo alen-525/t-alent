@@ -37,6 +37,7 @@ const server = createServer(async (req, res) => {
       return
     }
     const body = await readRequestJson(req)
+    assert.equal(req.headers.authorization, `Bearer ${fakeApiKey}`, 'local provider must receive only the key named by the external profile')
     const call = { ordinal: ++requestOrdinal, body }
     requestLog.push(call)
     const input = Array.isArray(body?.input) ? body.input : []
@@ -108,31 +109,13 @@ const server = createServer(async (req, res) => {
 let baseUrl
 
 function logStage(message) { process.stdout.write(`[codex-smoke] ${message}\n`) }
-function runtimeConfig() {
-  return {
-    program: 'program.mjs',
-    cancelGraceMs: 1500,
-    codexConfig: {
-      model: 'codex-smoke-model',
-      model_provider: 'mock',
-      model_providers: {
-        mock: {
-          name: 'local Codex runtime smoke fixture',
-          base_url: baseUrl,
-          wire_api: 'responses',
-          requires_openai_auth: false,
-          request_max_retries: 0,
-          stream_max_retries: 0,
-        },
-      },
-    },
-  }
-}
+function runtimeConfig() { return { program: 'program.mjs', cancelGraceMs: 1500 } }
+const modelProfile = model => ({ id: 'codex-local-mock', provider: 'local-responses', model, protocol: 'openai-responses', apiKeyEnv: 'PACK_CODEX_SMOKE_KEY', baseUrl })
 function createAgent() {
   return createAgentPackage({
     workspace,
     stateDir,
-    env: { CODEX_API_KEY: fakeApiKey, OPENAI_API_KEY: '' },
+    env: { PACK_CODEX_SMOKE_KEY: fakeApiKey, CODEX_API_KEY: 'ignored-decoy-key', OPENAI_API_KEY: 'ignored-openai-key', OPENAI_BASE_URL: 'http://127.0.0.1:1' },
     config: runtimeConfig(),
   })
 }
@@ -140,7 +123,7 @@ async function collectTask(agent, taskId, input, sessionId, controller = new Abo
   activeController = controller
   const events = []
   await withTimeout((async () => {
-    for await (const event of agent.executeTask({ taskId, input, sessionId, ...(model ? { model } : {}) }, { signal: controller.signal })) events.push(event)
+    for await (const event of agent.executeTask({ taskId, input, sessionId, model: modelProfile(model ?? 'codex-smoke-model') }, { signal: controller.signal })) events.push(event)
   })(), timeoutMs, `task ${taskId}`)
   activeController = null
   return events
@@ -160,7 +143,7 @@ try {
   logStage('real Codex shell tool reads a workspace file; transformed prompt reaches provider')
   const first = await collectTask(currentAgent, 'first-read', 'SMOKE_FIRST_READ', 'smoke-conversation', undefined, 'codex-task-model')
   const shellCall = first.find(event => event.type === 'tool-call')
-  assert.ok(shellCall && /sentinel\.txt/.test(shellCall.name), `expected original Codex shell tool event to run cat on the workspace file; got ${JSON.stringify(shellCall)}`)
+  assert.ok(shellCall && /sentinel\.txt/.test(shellCall.name), `expected original Codex shell tool event to run cat on the workspace file; got ${JSON.stringify(first)}`)
   assert.ok(first.some(event => event.type === 'tool-result' && JSON.stringify(event).includes(sentinel)), 'expected original Codex shell result to contain file sentinel')
   assert.ok(first.some(event => event.type === 'assistant-replace' && event.text.includes(sentinel)), 'expected final answer to use the file contents')
   assert.ok(requestLog.some(({ body }) => JSON.stringify(body.input).includes('PROGRAM_TRANSFORMED: SMOKE_FIRST_READ')), 'provider must receive the program-transformed input')
@@ -170,18 +153,18 @@ try {
   assertNoSecret(first)
 
   logStage('continue history in the same persistent App Server thread')
-  const second = await collectTask(currentAgent, 'second-turn', 'SMOKE_PERSISTED_SECOND_TURN', 'smoke-conversation', undefined, 'codex-resume-task-model')
+  const second = await collectTask(currentAgent, 'second-turn', 'SMOKE_PERSISTED_SECOND_TURN', 'smoke-conversation', undefined, 'codex-task-model')
   assert.ok(second.some(event => event.type === 'assistant-replace' && event.text === 'PERSISTED_SECOND_TURN_OK'))
   const secondRequest = requestLog.find(({ body }) => JSON.stringify(body.input).includes('SMOKE_PERSISTED_SECOND_TURN'))
   assert.ok(secondRequest, 'expected provider call for the second turn')
   assert.ok(JSON.stringify(secondRequest.body.input).includes(sentinel), 'resumed model input should retain prior shell output/history')
-  assert.equal(secondRequest.body.model, 'codex-resume-task-model', 'explicit task model must override the resumed thread model')
+  assert.equal(secondRequest.body.model, 'codex-task-model', 'external profile model must reach a resumed turn')
 
   logStage('cancel a deliberately hanging provider request, then resume its conversation')
   activeController = new AbortController()
   const hangingEvents = []
   const hangingTask = (async () => {
-    for await (const event of currentAgent.executeTask({ taskId: 'cancel-turn', input: 'SMOKE_HANG_UNTIL_CANCEL', sessionId: 'smoke-conversation' }, { signal: activeController.signal })) hangingEvents.push(event)
+    for await (const event of currentAgent.executeTask({ taskId: 'cancel-turn', input: 'SMOKE_HANG_UNTIL_CANCEL', sessionId: 'smoke-conversation', model: modelProfile('codex-task-model') }, { signal: activeController.signal })) hangingEvents.push(event)
   })()
   await withTimeout(waitFor(() => requestLog.some(({ body }) => JSON.stringify(body.input).includes('SMOKE_HANG_UNTIL_CANCEL'))), 12_000, 'hanging provider request start')
   activeController.abort()
@@ -189,24 +172,24 @@ try {
   assert.ok(hangingEvents.some(event => event.type === 'cancelled'), 'expected one cancellation event')
   if (hangingRequestClosed) await withTimeout(hangingRequestClosed, 5_000, 'hanging request close')
   activeController = null
-  const afterCancel = await collectTask(currentAgent, 'after-cancel', 'SMOKE_AFTER_CANCEL', 'smoke-conversation')
+  const afterCancel = await collectTask(currentAgent, 'after-cancel', 'SMOKE_AFTER_CANCEL', 'smoke-conversation', undefined, 'codex-task-model')
   assert.ok(afterCancel.some(event => event.type === 'assistant-replace' && event.text === 'RESUMED_AFTER_CANCEL_OK'))
 
   logStage('dispose and recreate package factory; resume the same persisted conversation')
   await currentAgent.dispose()
   currentAgent = await createAgent()
-  const crossFactory = await collectTask(currentAgent, 'cross-factory', 'SMOKE_CROSS_FACTORY', 'smoke-conversation')
+  const crossFactory = await collectTask(currentAgent, 'cross-factory', 'SMOKE_CROSS_FACTORY', 'smoke-conversation', undefined, 'codex-task-model')
   assert.ok(crossFactory.some(event => event.type === 'assistant-replace' && event.text === 'CROSS_FACTORY_HISTORY_OK'))
   const crossFactoryRequest = requestLog.find(({ body }) => JSON.stringify(body.input).includes('SMOKE_CROSS_FACTORY'))
   assert.ok(crossFactoryRequest && JSON.stringify(crossFactoryRequest.body.input).includes('PERSISTED_SECOND_TURN_OK'), 'history should survive factory recreation')
 
   logStage('surface an HTTP 401 provider failure without exposing the fake key')
-  const http401 = await collectTask(currentAgent, 'provider-401', 'SMOKE_HTTP_401', 'smoke-401')
+  const http401 = await collectTask(currentAgent, 'provider-401', 'SMOKE_HTTP_401', 'smoke-401', undefined, 'codex-task-model')
   assert.ok(http401.some(event => event.type === 'error'), 'expected an error event for HTTP 401')
   assertNoSecret(http401)
 
   logStage('surface response.failed code and detail without exposing the fake key')
-  const responseFailed = await collectTask(currentAgent, 'response-failed', 'SMOKE_RESPONSE_FAILED', 'smoke-response-failed')
+  const responseFailed = await collectTask(currentAgent, 'response-failed', 'SMOKE_RESPONSE_FAILED', 'smoke-response-failed', undefined, 'codex-task-model')
   const providerError = responseFailed.find(event => event.type === 'error')
   assert.ok(providerError, 'expected an error event for response.failed')
   assert.match(providerError.message, /test_provider_failure|Provider fixture detail/, 'expected upstream provider failure code or detail')

@@ -22,15 +22,21 @@ async function fixture(t, runtimeOptions = {}, setup = {}) {
     workspace,
     stateDir,
     env: {
-      DEEPSEEK_API_KEY: 'never-event-this-secret',
+      PACK_PROFILE_KEY: 'never-event-this-secret',
+      DEEPSEEK_API_KEY: 'ignored-old-key',
+      DEEPSEEK_MODEL: 'ignored-old-model',
+      DEEPSEEK_BASE_URL: 'http://127.0.0.1:1',
       PACK_TEST_ARGS_FILE: join(root, 'args.json'),
       PACK_TEST_SIGNAL_FILE: join(root, 'signals.txt'),
       ...(setup.env ?? {}),
     },
-    config: { model: 'deepseek-reasoner', reasoningEffort: 'high', maxTokens: 2048, patches: [patches], ...(setup.config ?? {}) },
+    config: { reasoningEffort: 'high', maxTokens: 2048, patches: [patches], ...(setup.config ?? {}) },
   }, { command: process.execPath, bin: fakeDsh.pathname, spawnProcess: spawn, ...runtimeOptions })
-  return { agent, workspace, stateDir, root, patches }
+  const rawExecuteTask = agent.executeTask.bind(agent)
+  agent.executeTask = (task, options) => rawExecuteTask({ ...task, model: typeof task.model === 'string' ? profile(task.model) : task.model ?? profile() }, options)
+  return { agent, executeTaskRaw: rawExecuteTask, workspace, stateDir, root, patches }
 }
+const profile = (model = 'deepseek-reasoner', overrides = {}) => ({ id: 'external-test', name: 'External test', provider: 'deepseek', model, protocol: 'deepseek', apiKeyEnv: 'PACK_PROFILE_KEY', ...overrides })
 
 async function collect(iterable) {
   const events = []
@@ -52,65 +58,68 @@ test('runs the original headless process with host-neutral inputs and maps compl
   assert.equal(events.some(event => JSON.stringify(event).includes('never-event-this-secret')), false)
 
   const recorded = JSON.parse(await readFile(join(root, 'args.json'), 'utf8'))
+  assert.equal(recorded.mappedKeyMatches, true)
+  assert.equal(recorded.originalProfileKeyAbsent, true)
   const { args } = recorded
   assert.deepEqual(args.slice(0, 2), ['--profile', 'headless'])
   assert.equal(args.includes('--json'), true)
   assert.equal(args.at(-1), '-')
   assert.equal(args.includes('--session-id'), false)
-  const patch = JSON.parse(recorded.patches[1])
+  const behavior = JSON.parse(recorded.patches[1])
+  const patch = JSON.parse(recorded.patches.at(-1))
+  assert.equal(behavior[0].config.reasoningEffort, 'high')
+  assert.equal(behavior[1].config.maxTokens, 2048)
   assert.equal(patch[0].config.provider, 'deepseek-official')
   assert.equal(patch[0].config.model, 'deepseek-reasoner')
-  assert.equal(patch[0].config.reasoningEffort, 'high')
-  assert.equal(patch[1].config.maxTokens, 2048)
   await agent.dispose()
 })
 
-test('discovers the official package catalog and reports the effective config or environment default', async t => {
-  const { agent } = await fixture(t, {}, { config: { patches: [] } })
-  const catalog = await agent.listModels()
-  assert.deepEqual(catalog.models.map(({ id }) => id), ['deepseek-flash', 'deepseek-v4-pro'])
-  assert.equal(catalog.models[0].name, 'DeepSeek-V41-Flash')
-  assert.equal(catalog.defaultModel, 'deepseek-reasoner')
-  assert.equal(catalog.allowCustomModel, true)
+test('does not export or query a package model catalog', async t => {
+  const { agent } = await fixture(t)
+  assert.equal(agent.listModels, undefined)
   await agent.dispose()
+})
 
-  const envConfigured = await fixture(t, {}, { config: { model: null, patches: [] }, env: { DEEPSEEK_MODEL: '  custom-env-model  ' } })
-  assert.equal((await envConfigured.agent.listModels()).defaultModel, 'custom-env-model')
-  await envConfigured.agent.dispose()
-
-  const patched = await fixture(t, {}, { config: { patches: ['caller.patch.yml'] } })
-  assert.equal(Object.hasOwn(await patched.agent.listModels(), 'defaultModel'), false)
-  await patched.agent.dispose()
+test('requires an external profile and rejects legacy package model defaults', async t => {
+  const { agent, executeTaskRaw, workspace, stateDir } = await fixture(t)
+  assert.throws(() => executeTaskRaw({ taskId: 'missing', input: 'x' }), /model profile is required/)
+  assert.throws(() => executeTaskRaw({ taskId: 'unsupported', input: 'x', model: { ...profile(), protocol: 'openai-responses' } }), /unsupported model profile protocol/)
+  await agent.dispose()
+  await assert.rejects(createAgentPackageWithRuntime({ workspace, stateDir: join(stateDir, 'legacy'), config: { model: 'old-model' } }, { command: process.execPath, bin: fakeDsh.pathname, spawnProcess: spawn }), /must come from the external model profile/)
 })
 
 test('explicit task model is trimmed, validated, and applied after caller patches', async t => {
   const { agent, root, patches } = await fixture(t)
-  await writeFile(patches, JSON.stringify([{ insert: [{ id: 'agent-default-model', name: '@deepseek-ai/dsh-agent-default-model', config: { provider: 'deepseek-official', model: 'caller-patch-model' } }] }]))
-  const events = await collect(agent.executeTask({ taskId: 'model-override', input: 'inspect note', model: '  deepseek-v4-pro  ' }))
+  await writeFile(patches, JSON.stringify([{ insert: [{ id: 'agent-default-model', name: '@deepseek-ai/dsh-agent-default-model', config: { provider: 'deepseek-official', model: 'caller-patch-model', reasoningEffort: 'low' } }, { id: 'llm-deepseek', name: '@deepseek-ai/dsh-llm-deepseek-api-key', config: { baseURL: 'http://127.0.0.1:1', maxTokens: 123 } }] }]))
+  const selectedProfile = profile('deepseek-v4-pro', { baseUrl: 'http://127.0.0.1:4321/anthropic' })
+  const events = await collect(agent.executeTask({ taskId: 'model-override', input: 'inspect note', model: selectedProfile }))
   assert.equal(events.at(-1)?.type, 'assistant-complete')
   const recorded = JSON.parse(await readFile(join(root, 'args.json'), 'utf8'))
   const patchArgs = recorded.args.flatMap((value, index) => value === '--patch' ? [recorded.args[index + 1]] : [])
   assert.equal(patchArgs.length, 4)
   assert.equal(patchArgs[2], patches)
+  const behaviorPatch = JSON.parse(recorded.patches[1])
+  assert.equal(behaviorPatch[0].config.reasoningEffort, 'high')
+  assert.equal(behaviorPatch[1].config.maxTokens, 2048)
   const callerPatch = JSON.parse(recorded.patches[2])
   assert.equal(callerPatch[0].insert[0].config.model, 'caller-patch-model')
+  assert.equal(callerPatch[0].insert[1].config.baseURL, 'http://127.0.0.1:1')
   const explicitPatch = JSON.parse(recorded.patches[3])
   assert.deepEqual(explicitPatch[0].config, { provider: 'deepseek-official', model: 'deepseek-v4-pro' })
-  assert.throws(() => agent.executeTask({ taskId: 'bad-model', input: 'no', model: '   ' }), /1–200 characters/)
-  assert.throws(() => agent.executeTask({ taskId: 'long-model', input: 'no', model: 'x'.repeat(201) }), /1–200 characters/)
+  assert.deepEqual(explicitPatch[1].config, { baseURL: selectedProfile.baseUrl })
   await agent.dispose()
 })
 
 test('reuses the persisted upstream session for consecutive host turns', async t => {
   const { agent, stateDir, root } = await fixture(t)
-  const firstEvents = await collect(agent.executeTask({ taskId: 'task-one', input: 'first', sessionId: 'conversation-A', model: 'deepseek-v4-pro' }))
+  const firstEvents = await collect(agent.executeTask({ taskId: 'task-one', input: 'first', sessionId: 'conversation-A', model: profile('deepseek-v4-pro') }))
   const upstreamSessionId = firstEvents.find(event => event.type === 'session').sessionId
-  await collect(agent.executeTask({ taskId: 'task-two', input: 'second', sessionId: 'conversation-A', model: 'deepseek-v4-pro' }))
+  await collect(agent.executeTask({ taskId: 'task-two', input: 'second', sessionId: 'conversation-A', model: profile('deepseek-v4-pro') }))
   const recorded = JSON.parse(await readFile(join(root, 'args.json'), 'utf8'))
   const secondArgs = recorded.args
   assert.equal(secondArgs[secondArgs.indexOf('--session-id') + 1], upstreamSessionId)
   assert.equal(JSON.parse(recorded.patches.at(-1))[0].config.model, 'deepseek-v4-pro')
-  assert.equal(JSON.parse(await readFile(join(stateDir, 'deepseek-sessions.json'), 'utf8'))['conversation-A'], upstreamSessionId)
+  assert.equal(Object.values(JSON.parse(await readFile(join(stateDir, 'deepseek-sessions.json'), 'utf8')))[0], upstreamSessionId)
   await agent.dispose()
 })
 

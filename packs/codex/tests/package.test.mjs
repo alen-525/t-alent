@@ -9,9 +9,12 @@ const fake=new URL('./fake-app-server.mjs',import.meta.url)
 async function fixture(t,mode='success',runtimeOverrides={},config={}) {
  const root=await mkdtemp(join(tmpdir(),'codex-pack-')),workspace=join(root,'workspace'),stateDir=join(root,'state'),log=join(root,'calls.jsonl')
  await (await import('node:fs/promises')).mkdir(workspace)
- const agent=await createAgentPackageWithRuntime({workspace,stateDir,env:{CODEX_API_KEY:'secret-test-value',PACK_CODEX_MODE:mode,PACK_CODEX_LOG:log,EXTRA_SECRET_VALUE:'quoted-\"credential'},config},{command:process.execPath,bin:fake.pathname,spawnProcess:spawn,...runtimeOverrides})
- t.after(async()=>{await agent.dispose().catch(()=>{});await rm(root,{recursive:true,force:true})}); return {agent,root,workspace,stateDir,log}
+ const agent=await createAgentPackageWithRuntime({workspace,stateDir,env:{PACK_PROFILE_KEY:'secret-test-value',CODEX_API_KEY:'ignored-old-key',OPENAI_API_KEY:'ignored-openai-key',PACK_CODEX_MODE:mode,PACK_CODEX_LOG:log,EXTRA_SECRET_VALUE:'quoted-\"credential'},config},{command:process.execPath,bin:fake.pathname,spawnProcess:spawn,...runtimeOverrides})
+ const rawExecuteTask=agent.executeTask.bind(agent)
+ agent.executeTask=(task,options)=>rawExecuteTask({...task,model:typeof task.model==='string'?profile(task.model):task.model??profile()},options)
+ t.after(async()=>{await agent.dispose().catch(()=>{});await rm(root,{recursive:true,force:true})}); return {agent,executeTaskRaw:rawExecuteTask,root,workspace,stateDir,log}
 }
+const profile=(model='profile-model',overrides={})=>({id:'external-test',provider:'openai',model,protocol:'openai-responses',apiKeyEnv:'PACK_PROFILE_KEY',...overrides})
 async function collect(iterable){const a=[];for await(const e of iterable)a.push(e);return a}
 test('maps App Server tool, delta and final events without repeating streamed text',async t=>{
  const {agent,log}=await fixture(t);const events=await collect(agent.executeTask({taskId:'t1',input:'inspect',sessionId:'conversation'}))
@@ -25,50 +28,52 @@ test('maps App Server tool, delta and final events without repeating streamed te
  assert.equal(calls.find(c=>c.method==='thread/start').params.approvalPolicy,'never')
  await agent.dispose()
 })
-test('discovers original App Server model slugs and forwards task model to new and resumed turns',async t=>{
- const {agent,log}=await fixture(t,'success',{}, {model:'configured-model',codexConfig:{model:'nested-config-model',model_provider:'mock'}})
- const [catalog,catalogAgain]=await Promise.all([agent.listModels(),agent.listModels()])
- assert.deepEqual(catalogAgain,catalog)
- assert.deepEqual(catalog.models,[{id:'catalog-model',name:'Catalog Model',description:'fixture model'}])
- assert.equal(catalog.defaultModel,'configured-model');assert.equal(catalog.allowCustomModel,true)
+test('forwards external profile models on new and resumed turns without querying model catalogs',async t=>{
+ const {agent,log}=await fixture(t)
  await collect(agent.executeTask({taskId:'model-new',input:'new model',sessionId:'model-session',model:'explicit-task-model'}))
- await collect(agent.executeTask({taskId:'model-resume',input:'resume model',sessionId:'model-session',model:'resume-task-model'}))
+ await collect(agent.executeTask({taskId:'model-resume',input:'resume model',sessionId:'model-session',model:'explicit-task-model'}))
  const calls=(await readFile(log,'utf8')).trim().split('\n').map(JSON.parse)
- assert.equal(calls.filter(call=>call.method==='model/list').length,1)
- assert.equal(calls.some(call=>call.catalogEnvHasApiKey),false,'catalog App Server must not inherit provider credentials')
+ assert.equal(calls.filter(call=>call.method==='model/list').length,0)
  assert.equal(calls.some(call=>call.method==='account/login/start'),true,'task execution still authenticates normally')
  const started=calls.find(call=>call.method==='thread/start').params
  const resumed=calls.find(call=>call.method==='thread/resume').params
  const turns=calls.filter(call=>call.method==='turn/start').map(call=>call.params)
- assert.equal(started.model,'explicit-task-model');assert.equal(resumed.model,'resume-task-model')
- assert.equal(started.config.model,undefined);assert.equal(resumed.config.model,undefined)
- assert.deepEqual(turns.map(params=>params.model),['explicit-task-model','resume-task-model'])
+ assert.equal(started.model,'explicit-task-model');assert.equal(resumed.model,'explicit-task-model')
+ assert.deepEqual(turns.map(params=>params.model),['explicit-task-model','explicit-task-model'])
  await agent.dispose()
 })
-test('disposal stops and awaits an in-flight catalog App Server',async t=>{
- const {agent,log}=await fixture(t,'catalog-slow')
- const pending=agent.listModels()
- for(let attempt=0;attempt<100;attempt++){
-  try{if((await readFile(log,'utf8')).includes('model/list'))break}catch{}
-  await new Promise(resolveDelay=>setTimeout(resolveDelay,10))
- }
- assert.match(await readFile(log,'utf8'),/model\/list/)
+test('custom Responses profile owns route, key mapping, and a separate persisted thread',async t=>{
+ const {agent,executeTaskRaw,log}=await fixture(t)
+ const custom={...profile('vendor-codex'),id:'vendor-a',provider:'vendor',baseUrl:'http://127.0.0.1:8123/v1'}
+ await collect(executeTaskRaw({taskId:'custom-a',input:'custom',sessionId:'same-session',model:custom}))
+ await collect(executeTaskRaw({taskId:'custom-b',input:'changed profile',sessionId:'same-session',model:{...custom,id:'vendor-b',baseUrl:'http://127.0.0.1:8124/v1'}}))
+ const calls=(await readFile(log,'utf8')).trim().split('\n').map(JSON.parse)
+ const starts=calls.filter(call=>call.method==='thread/start').map(call=>call.params)
+ assert.equal(starts.length,2)
+ assert.equal(starts[0].model,'vendor-codex')
+ assert.deepEqual(starts[0].config,{model_provider:'t_alent_external','model_providers.t_alent_external.name':'External Responses provider','model_providers.t_alent_external.base_url':'http://127.0.0.1:8123/v1','model_providers.t_alent_external.wire_api':'responses','model_providers.t_alent_external.env_key':'T_ALENT_MODEL_API_KEY','model_providers.t_alent_external.requires_openai_auth':false,'model_providers.t_alent_external.request_max_retries':0,'model_providers.t_alent_external.stream_max_retries':0})
+ assert.throws(()=>executeTaskRaw({taskId:'bad',input:'x',model:{...custom,protocol:'anthropic'}}),/unsupported model profile protocol/)
+ assert.equal(calls.some(call=>call.method==='account/login/start'),false,'custom endpoint credentials use env_key without OpenAI account login')
  await agent.dispose()
- await assert.rejects(pending,/exited before returning its model catalog/)
 })
 test('persists and resumes host session mapping',async t=>{
  const {agent,stateDir,log}=await fixture(t)
  await collect(agent.executeTask({taskId:'one',input:'first',sessionId:'host-A'}));await collect(agent.executeTask({taskId:'two',input:'second',sessionId:'host-A'}))
  const calls=(await readFile(log,'utf8')).trim().split('\n').map(JSON.parse)
  assert.equal(calls.filter(c=>c.method==='thread/start').length,1);assert.equal(calls.find(c=>c.method==='thread/resume').params.threadId,'upstream-thread-1')
- assert.deepEqual(JSON.parse(await readFile(join(stateDir,'codex-threads.json'),'utf8')),{ 'host-A':'upstream-thread-1' });await agent.dispose()
+ assert.equal(Object.values(JSON.parse(await readFile(join(stateDir,'codex-threads.json'),'utf8')))[0],'upstream-thread-1');await agent.dispose()
 })
 test('fails cleanly for missing auth, malformed rpc and failed turn',async t=>{
  const root=await mkdtemp(join(tmpdir(),'codex-no-key-'));await (await import('node:fs/promises')).mkdir(join(root,'workspace'))
  const agent=await createAgentPackageWithRuntime({workspace:join(root,'workspace'),stateDir:join(root,'state'),env:{},config:{}},{command:process.execPath,bin:fake.pathname,spawnProcess:spawn})
- assert.match((await collect(agent.executeTask({taskId:'nokey',input:'x'})))[0].message,/authentication is missing/);await agent.dispose();await rm(root,{recursive:true,force:true})
+ assert.throws(()=>agent.executeTask({taskId:'nokey',input:'x'}),/model profile is required/);assert.throws(()=>agent.executeTask({taskId:'nokey',input:'x',model:profile()}),/PACK_PROFILE_KEY is missing/);await agent.dispose();await rm(root,{recursive:true,force:true})
  const {agent:bad}=await fixture(t,'malformed');assert.equal((await collect(bad.executeTask({taskId:'bad',input:'x'}))).filter(e=>e.type==='error').length,1);await bad.dispose()
  const {agent:failed}=await fixture(t,'failure');const events=await collect(failed.executeTask({taskId:'failed',input:'x'}));assert.match(events.find(e=>e.type==='error').message,/fixture failure \[redacted\]/);assert.equal(JSON.stringify(events).includes('secret-test-value'),false);assert.equal(events.some(e=>e.type==='assistant-complete'),false);await failed.dispose()
+})
+test('rejects legacy model and endpoint overrides in package config',async t=>{
+ const root=await mkdtemp(join(tmpdir(),'codex-legacy-config-')),workspace=join(root,'workspace'),stateDir=join(root,'state');await (await import('node:fs/promises')).mkdir(workspace)
+ for(const codexConfig of [{model:'old-model'},{model_provider:'old-provider'},{'model_providers.openai.base_url':'https://example.invalid'},{openai_base_url:'https://example.invalid'}]) await assert.rejects(createAgentPackageWithRuntime({workspace,stateDir,config:{codexConfig}},{command:process.execPath,bin:fake.pathname,spawnProcess:spawn}),/model and provider settings must come from the external model profile/)
+ await rm(root,{recursive:true,force:true})
 })
 test('cancels only matching task, waits for App Server completion and emits one cancelled event',async t=>{
  const {agent}=await fixture(t,'slow');const stream=agent.executeTask({taskId:'slow-task',input:'wait'});const iter=stream[Symbol.asyncIterator]();const first=await iter.next();assert.equal(first.value.type,'session')
@@ -78,15 +83,15 @@ test('cancels only matching task, waits for App Server completion and emits one 
 test('workspace program transforms input with explicit trusted hook',async t=>{
  const {agent,workspace,log,root}=await fixture(t);await writeFile(join(workspace,'program.mjs'),"export function transformInput(input){return 'rewritten: '+input}")
  await agent.dispose()
- const hooked=await createAgentPackageWithRuntime({workspace,stateDir:join(root,'state'),env:{CODEX_API_KEY:'secret-test-value',PACK_CODEX_LOG:log},config:{program:'program.mjs'}},{command:process.execPath,bin:fake.pathname,spawnProcess:spawn})
- await collect(hooked.executeTask({taskId:'hook',input:'hello'}));const calls=(await readFile(log,'utf8')).trim().split('\n').map(JSON.parse);assert.equal(calls.find(c=>c.method==='turn/start').params.input[0].text,'rewritten: hello');await hooked.dispose()
+ const hooked=await createAgentPackageWithRuntime({workspace,stateDir:join(root,'state'),env:{PACK_PROFILE_KEY:'secret-test-value',PACK_CODEX_LOG:log},config:{program:'program.mjs'}},{command:process.execPath,bin:fake.pathname,spawnProcess:spawn})
+ await collect(hooked.executeTask({taskId:'hook',input:'hello',model:profile()}));const calls=(await readFile(log,'utf8')).trim().split('\n').map(JSON.parse);assert.equal(calls.find(c=>c.method==='turn/start').params.input[0].text,'rewritten: hello');await hooked.dispose()
 })
 
 
 test('fails once for malformed JSON-RPC, spawn failure, and corrupt thread maps',async t=>{
  const {agent:malformed}=await fixture(t,'null-rpc');const malformedEvents=await collect(malformed.executeTask({taskId:'null-rpc',input:'x'}));assert.equal(malformedEvents.filter(e=>e.type==='error').length,1);assert.match(malformedEvents.find(e=>e.type==='error').message,/malformed JSON-RPC/);await malformed.dispose()
  const {agent:spawnFailed}=await fixture(t,'success',{spawnProcess(){throw new Error('spawn denied secret-test-value')}});const spawnEvents=await collect(spawnFailed.executeTask({taskId:'spawn-fail',input:'x'}));assert.equal(spawnEvents.filter(e=>e.type==='error').length,1);assert.equal(JSON.stringify(spawnEvents).includes('secret-test-value'),false);await spawnFailed.dispose()
- const root=await mkdtemp(join(tmpdir(),'codex-badmap-')),workspace=join(root,'workspace'),stateDir=join(root,'state');await (await import('node:fs/promises')).mkdir(workspace);await (await import('node:fs/promises')).mkdir(stateDir);await writeFile(join(stateDir,'codex-threads.json'),'not json');await assert.rejects(createAgentPackageWithRuntime({workspace,stateDir,env:{CODEX_API_KEY:'x'},config:{}},{command:process.execPath,bin:fake.pathname,spawnProcess:spawn}),/thread map is unreadable/);await rm(root,{recursive:true,force:true})
+ const root=await mkdtemp(join(tmpdir(),'codex-badmap-')),workspace=join(root,'workspace'),stateDir=join(root,'state');await (await import('node:fs/promises')).mkdir(workspace);await (await import('node:fs/promises')).mkdir(stateDir);await writeFile(join(stateDir,'codex-threads.json'),'not json');await assert.rejects(createAgentPackageWithRuntime({workspace,stateDir,env:{PACK_PROFILE_KEY:'x'},config:{}},{command:process.execPath,bin:fake.pathname,spawnProcess:spawn}),/thread map is unreadable/);await rm(root,{recursive:true,force:true})
 })
 
 test('rejects overlapping work and disposal cancels the owned task',async t=>{
@@ -103,5 +108,5 @@ test('declines Codex permission-profile requests with the pinned schema response
 })
 
 test('cancellation interrupts an asynchronous input hook before spawn',async t=>{
- const {root,workspace,stateDir}=await fixture(t);await writeFile(join(workspace,'hang.mjs'),"export function transformInput(){return new Promise(()=>{})}");const agent=await createAgentPackageWithRuntime({workspace,stateDir,env:{CODEX_API_KEY:'quoted-\"credential'},config:{program:'hang.mjs'}},{command:process.execPath,bin:fake.pathname,spawnProcess(){throw new Error('must not spawn')}});const stream=agent.executeTask({taskId:'hook-cancel',input:'wait'});const events=collect(stream);await agent.cancelTask('hook-cancel');assert.deepEqual(await events,[{type:'cancelled'}]);await agent.dispose()
+ const {root,workspace,stateDir}=await fixture(t);await writeFile(join(workspace,'hang.mjs'),"export function transformInput(){return new Promise(()=>{})}");const agent=await createAgentPackageWithRuntime({workspace,stateDir,env:{PACK_PROFILE_KEY:'quoted-\"credential'},config:{program:'hang.mjs'}},{command:process.execPath,bin:fake.pathname,spawnProcess(){throw new Error('must not spawn')}});const stream=agent.executeTask({taskId:'hook-cancel',input:'wait',model:profile()});const events=collect(stream);await agent.cancelTask('hook-cancel');assert.deepEqual(await events,[{type:'cancelled'}]);await agent.dispose()
 })

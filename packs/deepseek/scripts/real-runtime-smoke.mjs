@@ -13,6 +13,7 @@ await mkdir(workspace)
 await writeFile(join(workspace, 'probe.txt'), 'LOCAL_READ_SENTINEL_93d26')
 
 const requests = []
+let mockBaseUrl
 let pendingHang = null
 let hangTriggered = false
 let hangStartedResolve
@@ -21,6 +22,7 @@ const server = createServer(async (request, response) => {
   const chunks = []
   for await (const chunk of request) chunks.push(chunk)
   const body = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  assert.equal(request.headers['x-api-key'], 'smoke-key-not-for-production', 'local provider must receive the key named by the external profile')
   requests.push({ body, sessionId: request.headers['x-deepseek-harness-session-id'] })
   const latestUser = [...(body.messages ?? [])].reverse().find(message => message.role === 'user')
   const userText = JSON.stringify(latestUser?.content ?? '')
@@ -95,17 +97,21 @@ async function collectWithTimeout(stream, stage) {
 server.listen(0, '127.0.0.1')
 await once(server, 'listening')
 const address = server.address()
+mockBaseUrl = `http://127.0.0.1:${address.port}`
+const profile = model => ({ id: 'deepseek-local-mock', provider: 'deepseek', model, protocol: 'deepseek', apiKeyEnv: 'PACK_DEEPSEEK_SMOKE_KEY', baseUrl: mockBaseUrl })
 const env = {
   ...process.env,
-  DEEPSEEK_API_KEY: 'smoke-key-not-for-production',
-  DEEPSEEK_BASE_URL: `http://127.0.0.1:${address.port}`,
+  PACK_DEEPSEEK_SMOKE_KEY: 'smoke-key-not-for-production',
+  DEEPSEEK_API_KEY: 'ignored-decoy-key',
+  DEEPSEEK_MODEL: 'ignored-decoy-model',
+  DEEPSEEK_BASE_URL: 'http://127.0.0.1:1',
 }
-const agent = await createAgentPackage({ workspace, stateDir, env, config: { model: 'deepseek-flash' } })
+const agent = await createAgentPackage({ workspace, stateDir, env })
 const taskModel = 'deepseek-v4-pro'
 
 try {
   process.stdout.write('smoke: original runtime tool/read-file roundtrip…\n')
-  const first = await collectWithTimeout(agent.executeTask({ taskId: 'read-roundtrip', input: 'READ_FILE: read probe.txt and report its contents', sessionId: 'smoke-conversation', model: taskModel }), 'read roundtrip')
+  const first = await collectWithTimeout(agent.executeTask({ taskId: 'read-roundtrip', input: 'READ_FILE: read probe.txt and report its contents', sessionId: 'smoke-conversation', model: profile(taskModel) }), 'read roundtrip')
   assert.equal(first.some(event => event.type === 'tool-call' && event.name === 'read'), true, 'original headless runtime should emit a read tool call')
   assert.equal(first.some(event => event.type === 'tool-result' && String(event.output).includes('LOCAL_READ_SENTINEL_93d26')), true, 'the original read tool should return the local file contents')
   assert.equal(first.findLast(event => event.type === 'assistant-replace')?.text.includes('LOCAL_READ_SENTINEL_93d26'), true, 'the final answer should include the tool result')
@@ -114,7 +120,7 @@ try {
   const sessionId = first.find(event => event.type === 'session')?.sessionId
   assert.ok(sessionId, 'headless JSON stream should publish its durable session id')
   process.stdout.write('smoke: second turn with persisted conversation history…\n')
-  const second = await collectWithTimeout(agent.executeTask({ taskId: 'second-turn', input: 'SECOND_TURN: Continue this conversation', sessionId: 'smoke-conversation', model: taskModel }), 'second turn')
+  const second = await collectWithTimeout(agent.executeTask({ taskId: 'second-turn', input: 'SECOND_TURN: Continue this conversation', sessionId: 'smoke-conversation', model: profile(taskModel) }), 'second turn')
   assert.equal(second.find(event => event.type === 'assistant-replace')?.text, 'Second task used the existing session.')
   assert.equal(requests.at(-1)?.body.model, taskModel, 'a new task resuming the session should keep its selected model')
   const secondHistory = JSON.stringify(requests.at(-1)?.body.messages ?? [])
@@ -123,7 +129,7 @@ try {
   assert.match(secondHistory, /LOCAL_READ_SENTINEL_93d26/)
 
   const cancelController = new AbortController()
-  const cancelStream = agent.executeTask({ taskId: 'cancel-turn', input: 'HANG_FOR_CANCEL', sessionId: 'smoke-conversation' }, { signal: cancelController.signal })
+  const cancelStream = agent.executeTask({ taskId: 'cancel-turn', input: 'HANG_FOR_CANCEL', sessionId: 'smoke-conversation', model: profile(taskModel) }, { signal: cancelController.signal })
   const cancelEvents = []
   const consume = (async () => { for await (const event of cancelStream) cancelEvents.push(event) })()
   await withTimeout(hangStarted, 20_000, 'mock model request did not start')
@@ -133,12 +139,12 @@ try {
   if (pendingHang && !pendingHang.destroyed) pendingHang.destroy()
 
   process.stdout.write('smoke: cancel and resume the same persisted session…\n')
-  const resumed = await collectWithTimeout(agent.executeTask({ taskId: 'resume-after-cancel', input: 'RESUME_AFTER_CANCEL and continue the conversation', sessionId: 'smoke-conversation' }), 'resume after cancel')
+  const resumed = await collectWithTimeout(agent.executeTask({ taskId: 'resume-after-cancel', input: 'RESUME_AFTER_CANCEL and continue the conversation', sessionId: 'smoke-conversation', model: profile(taskModel) }), 'resume after cancel')
   assert.equal(resumed.find(event => event.type === 'assistant-replace')?.text, 'Recovered the prior session after cancellation.')
   assert.match(JSON.stringify(requests.at(-1)?.body.messages ?? []), /HANG_FOR_CANCEL/)
 
   process.stdout.write('smoke: provider error propagation…\n')
-  const failure = await collectWithTimeout(agent.executeTask({ taskId: 'provider-error', input: 'FORCE_PROVIDER_ERROR' }), 'provider failure')
+  const failure = await collectWithTimeout(agent.executeTask({ taskId: 'provider-error', input: 'FORCE_PROVIDER_ERROR', model: profile(taskModel) }), 'provider failure')
   const providerError = failure.find(event => event.type === 'error')
   assert.match(providerError?.message ?? '', /^AUTH: fixture provider rejection/, 'turn/end error details and code must reach TaskEvents')
   assert.equal(providerError.message.includes('smoke-key-not-for-production'), false, 'provider details must redact credentials')

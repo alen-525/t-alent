@@ -14,6 +14,7 @@ export type SidebarLabels = {
   panels: string
   settings: string
   packages: string
+  models: string
   home: string
   workspace: string
   recent: string
@@ -85,7 +86,7 @@ export function SidebarRoot({
   const wide = !collapsed || !settled
   const panelLabel = (panel: SidebarPanel): string => panel.id === 'home'
     ? labels.home
-    : panel.id === 'packages' ? labels.packages : panel.label
+    : panel.id === 'packages' ? labels.packages : panel.id === 'models' ? labels.models : panel.label
   const lastWideWidth = useRef(width)
   if (!collapsed) lastWideWidth.current = width
   const everWide = useRef(!collapsed)

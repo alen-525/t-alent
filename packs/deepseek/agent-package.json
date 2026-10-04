@@ -2,6 +2,8 @@
   "id": "deepseek",
   "name": "DeepSeek Agent",
   "version": "0.1.0",
+  "description": "使用原版 DeepSeek Harness 的 headless 工具循环与会话恢复；模型路由由宿主 profile 提供。",
+  "modelProtocols": ["deepseek"],
   "entry": "src/index.mjs",
   "upstream": {
     "package": "@deepseek-ai/dsh",

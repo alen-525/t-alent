@@ -13,14 +13,15 @@ export function validateManifest(input) {
   if (typeof name !== 'string' || !name.trim() || name.length > 100) throw new Error('Invalid package name.')
   if (typeof version !== 'string' || !version.trim() || version.length > 40) throw new Error('Invalid package version.')
   if (typeof entry !== 'string' || !entry.trim()) throw new Error('Package manifest must declare an entry path.')
-  return { id, name: name.trim(), version: version.trim(), ...(typeof input.description === 'string' ? { description: input.description.slice(0, 500) } : {}), entry }
+  if (input.modelProtocols !== undefined && (!Array.isArray(input.modelProtocols) || input.modelProtocols.some(value => typeof value !== 'string' || !value.trim() || value.length > 200 || value !== value.trim()))) throw new Error('Invalid package modelProtocols.')
+  return { id, name: name.trim(), version: version.trim(), ...(typeof input.description === 'string' ? { description: input.description.slice(0, 500) } : {}), ...(input.modelProtocols === undefined ? {} : { modelProtocols: [...new Set(input.modelProtocols)] }), entry }
 }
 
 export function parseHostArgs(argv) {
   const options = {}
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
-    if (arg === '--package' || arg === '--workspace' || arg === '--port' || arg === '--state-dir' || arg === '--config') {
+    if (arg === '--package' || arg === '--workspace' || arg === '--port' || arg === '--state-dir' || arg === '--config' || arg === '--models') {
       const value = argv[++i]
       if (!value || value.startsWith('--')) throw new Error(`${arg} requires a value.`)
       const key = arg.slice(2).replaceAll('-', '')
@@ -39,6 +40,32 @@ async function readConfig(filename) {
   const value = JSON.parse(await readFile(filename, 'utf8'))
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Config must be a JSON object keyed by package id.')
   return value
+}
+
+async function readModels(filename) {
+  if (!filename) return { profiles: [], defaultModelId: undefined }
+  const value = JSON.parse(await readFile(filename, 'utf8'))
+  const fail = () => { throw new Error('Invalid model registry.') }
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !['models', 'defaultModelId'].includes(key)) || !Array.isArray(value.models) || value.models.length > 1000) fail()
+  const ids = new Set()
+  const profiles = value.models.map(entry => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry) || Object.keys(entry).some(key => !['id', 'name', 'provider', 'model', 'protocol', 'apiKeyEnv', 'baseUrl'].includes(key))) fail()
+    const { id, name, provider, model, protocol, apiKeyEnv, baseUrl } = entry
+    if (typeof id !== 'string' || !id.trim() || id.length > 200 || id !== id.trim() || ids.has(id)) fail()
+    if (name !== undefined && (typeof name !== 'string' || !name.trim() || name.length > 200)) fail()
+    if (typeof provider !== 'string' || !provider.trim() || provider.length > 100) fail()
+    if (typeof model !== 'string' || !model.trim() || model.length > 200) fail()
+    if (typeof protocol !== 'string' || !protocol.trim() || protocol.length > 100) fail()
+    if (typeof apiKeyEnv !== 'string' || apiKeyEnv.length > 200 || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(apiKeyEnv)) fail()
+    if (baseUrl !== undefined) {
+      if (typeof baseUrl !== 'string' || baseUrl.length > 2048 || baseUrl !== baseUrl.trim()) fail()
+      try { const parsed = new URL(baseUrl); if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password || parsed.search || parsed.hash) fail() } catch { fail() }
+    }
+    ids.add(id)
+    return Object.freeze({ id, ...(name === undefined ? {} : { name: name.trim() }), provider: provider.trim(), model: model.trim(), protocol: protocol.trim(), apiKeyEnv, ...(baseUrl === undefined ? {} : { baseUrl }) })
+  })
+  if (value.defaultModelId !== undefined && (typeof value.defaultModelId !== 'string' || !ids.has(value.defaultModelId))) fail()
+  return { profiles, defaultModelId: value.defaultModelId }
 }
 
 /** Inspect metadata without importing code. Metadata registration never activates a package. */
@@ -99,10 +126,12 @@ async function bodyJson(req) {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch { throw Object.assign(new Error('Invalid JSON request body.'), { status: 400 }) }
 }
 
-export async function createHost({ packagePath, packagePaths, workspace, stateDir = '.talent', configPath, port = 8787, env = process.env, bindHost = '127.0.0.1' } = {}) {
+export async function createHost({ packagePath, packagePaths, workspace, stateDir = '.talent', configPath, modelsPath, port = 8787, env = process.env, bindHost = '127.0.0.1' } = {}) {
   const resolvedWorkspace = await realpath(workspace)
   const stateRoot = path.resolve(stateDir)
   const config = await readConfig(configPath)
+  const modelRegistry = await readModels(modelsPath)
+  const profilesById = new Map(modelRegistry.profiles.map(profile => [profile.id, profile]))
   const packages = new Map()
   const packageList = packagePaths ?? (packagePath ? [packagePath] : [])
   try {
@@ -119,6 +148,7 @@ export async function createHost({ packagePath, packagePaths, workspace, stateDi
     throw error
   }
   const tasks = new Map()
+  const sessionProfiles = new Map()
   const seenTaskIds = new Set()
   const unloading = new Set()
   let closed = false
@@ -140,34 +170,7 @@ export async function createHost({ packagePath, packagePaths, workspace, stateDi
     const url = new URL(req.url ?? '/', 'http://127.0.0.1')
     if (!isLoopbackRequest(req)) return json(res, 403, { error: 'Loopback requests only.' })
     if (req.method === 'GET' && url.pathname === '/api/packages') return json(res, 200, { packages: [...packages.values()].map(({ manifest }) => ({ manifest, runtimeReady: true })) })
-    if (req.method === 'GET' && url.pathname.startsWith('/api/packages/') && url.pathname.endsWith('/models')) {
-      let id
-      try { id = decodeURIComponent(url.pathname.slice('/api/packages/'.length, -'/models'.length)) } catch { return json(res, 400, { error: 'Invalid package id.' }) }
-      const loaded = packages.get(id)
-      if (!loaded) return json(res, 404, { error: 'Package is not loaded.' })
-      if (unloading.has(id)) return json(res, 409, { error: 'Package is unloading.' })
-      if (typeof loaded.runtime.listModels !== 'function') return json(res, 200, { models: [], allowCustomModel: false })
-      try {
-        const catalog = await loaded.runtime.listModels()
-        if (!catalog || typeof catalog !== 'object' || Array.isArray(catalog) || !Array.isArray(catalog.models) || catalog.models.length > 1000) throw new Error('Invalid model catalog.')
-        const ids = new Set()
-        const models = catalog.models.map(model => {
-          if (!model || typeof model !== 'object' || Array.isArray(model) || typeof model.id !== 'string' || !model.id.trim()) throw new Error('Invalid model entry.')
-          const id = model.id.trim()
-          if (id.length > 200 || ids.has(id)) throw new Error('Invalid model entry.')
-          ids.add(id)
-          return { id, ...(typeof model.name === 'string' ? { name: model.name.slice(0, 200) } : {}), ...(typeof model.description === 'string' ? { description: model.description.slice(0, 2000) } : {}) }
-        })
-        let defaultModel
-        if (catalog.defaultModel !== undefined) {
-          if (typeof catalog.defaultModel !== 'string' || !catalog.defaultModel.trim() || catalog.defaultModel.trim().length > 200) throw new Error('Invalid default model.')
-          defaultModel = catalog.defaultModel.trim()
-        }
-        return json(res, 200, { models, ...(defaultModel === undefined ? {} : { defaultModel }), allowCustomModel: catalog.allowCustomModel === true })
-      } catch {
-        return json(res, 500, { error: 'Unable to load model catalog.' })
-      }
-    }
+    if (req.method === 'GET' && url.pathname === '/api/models') return json(res, 200, { models: modelRegistry.profiles.map(({ id, name, provider, model, protocol, baseUrl }) => ({ id, ...(name === undefined ? {} : { name }), provider, model, protocol, ...(baseUrl === undefined ? {} : { baseUrl }) })), ...(modelRegistry.defaultModelId === undefined ? {} : { defaultModelId: modelRegistry.defaultModelId }) })
     if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { connected: true })
     if (req.method === 'POST' && url.pathname.startsWith('/api/packages/') && url.pathname.endsWith('/unload')) {
       if (!sameOriginRequest(req)) return json(res, 403, { error: 'Same-origin requests are required.' })
@@ -199,27 +202,30 @@ export async function createHost({ packagePath, packagePaths, workspace, stateDi
       return json(res, 200, { cancelled: true })
     }
     if (url.pathname !== '/api/tasks') return json(res, 404, { error: 'Not found.' })
-    const { packageId, input, sessionId, taskId } = body
+    const { packageId, input, sessionId, taskId, modelId } = body
+    if (Object.hasOwn(body, 'model') || Object.hasOwn(body, 'provider') || Object.hasOwn(body, 'apiKey') || Object.hasOwn(body, 'apiKeyEnv')) return json(res, 400, { error: 'Model configuration must be selected by modelId.' })
     if (typeof packageId !== 'string' || !packages.has(packageId) || unloading.has(packageId)) return json(res, 409, { error: 'No explicitly loaded package matches packageId.' })
+    if (typeof modelId !== 'string' || !modelId.trim()) return json(res, 400, { error: 'modelId is required.' })
+    const model = profilesById.get(modelId)
+    if (!model) return json(res, 400, { error: 'Unknown modelId.' })
+    const manifest = packages.get(packageId).manifest
+    if (manifest.modelProtocols && !manifest.modelProtocols.includes(model.protocol)) return json(res, 409, { error: 'Selected model protocol is not supported by this package.' })
     if (typeof input !== 'string' || !input.trim()) return json(res, 400, { error: 'Task input must not be empty.' })
-    let model
-    if (Object.hasOwn(body, 'model')) {
-      if (typeof body.model !== 'string' || !body.model.trim() || body.model.trim().length > 200) return json(res, 400, { error: 'model must be a non-empty string of at most 200 characters.' })
-      model = body.model.trim()
-    }
     if (typeof taskId !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(taskId) || seenTaskIds.has(taskId)) return json(res, 409, { error: 'taskId must be unique and valid.' })
     const { runtime } = packages.get(packageId)
     if ([...tasks.values()].some(task => task.runtime === runtime)) return json(res, 409, { error: 'This package already has an active task.' })
     if (typeof sessionId !== 'string' || !sessionId) return json(res, 400, { error: 'sessionId is required.' })
+    if (sessionProfiles.has(sessionId) && sessionProfiles.get(sessionId) !== model.id) return json(res, 409, { error: 'This session is bound to a different model profile.' })
     res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'x-task-id': taskId })
     let responseClosed = false
     const task = { runtime, controller: new AbortController(), cancelPromise: undefined, done: undefined }
     tasks.set(taskId, task)
+    sessionProfiles.set(sessionId, model.id)
     seenTaskIds.add(taskId)
     const write = event => { if (!res.destroyed && !res.writableEnded) res.write(JSON.stringify(event) + '\n') }
     task.done = (async () => {
       try {
-        const iterable = await runtime.executeTask({ taskId, input, sessionId, ...(model === undefined ? {} : { model }) }, { signal: task.controller.signal })
+        const iterable = await runtime.executeTask({ taskId, input, sessionId, model }, { signal: task.controller.signal })
         for await (const event of iterable) {
           if (responseClosed) break
           write(event)

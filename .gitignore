@@ -8,3 +8,4 @@ dist/
 /.talent/
 *.log
 /Reference/
+/config/*.local.json
