@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "magentic-one",
+  "name": "Magentic-One coding team",
+  "version": "0.2.0",
+  "description": "Run Microsoft's native MagenticOneGroupChat orchestration with its Magentic-One Coder and local CodeExecutorAgent, without browser or Docker tools.",
+  "modelProtocols": ["openai-chat-completions"],
+  "prompts": { "system": "system.md", "protocol_openai_chat_completions": "protocol-openai-chat-completions.md", "task": "task.md" },
+  "logic": {
+    "adapter": "magentic-one",
+    "defaults": {},
+    "steps": [
+      {"type":"prompt","ref":"system"},
+      {"type":"prompt","ref":"protocol_openai_chat_completions","when":{"protocol":"openai-chat-completions"}},
+      {"type":"prompt","ref":"task"},
+      {"type":"execute"}
+    ]
+  },
+  "source": {"agent":"magentic-one","version":"0.7.5"}
+}

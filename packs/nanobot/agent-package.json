@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "nanobot",
+  "name": "Nanobot",
+  "version": "0.2.0",
+  "description": "Use the official Nanobot Python SDK and native coding agent loop in the selected workspace.",
+  "modelProtocols": ["openai-chat-completions"],
+  "prompts": {
+    "system": "system.md",
+    "protocol_openai_chat_completions": "protocol-openai-chat-completions.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "nanobot",
+    "defaults": {},
+    "steps": [
+      { "type": "prompt", "ref": "system" },
+      { "type": "prompt", "ref": "protocol_openai_chat_completions", "when": { "protocol": "openai-chat-completions" } },
+      { "type": "prompt", "ref": "task" },
+      { "type": "execute" }
+    ]
+  },
+  "source": { "agent": "nanobot", "version": "0.3.5" }
+}

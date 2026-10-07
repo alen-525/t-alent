@@ -1,0 +1,39 @@
+{
+  "packageId": "open-interpreter",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "open-interpreter",
+    "package": "open-interpreter",
+    "version": "0.4.3",
+    "repository": "https://github.com/OpenInterpreter/open-interpreter",
+    "license": "AGPL-3.0-only",
+    "sourceTag": null,
+    "referenceCommit": null,
+    "sourceNote": "The 0.4.3 PyPI artifact has no matching public GitHub tag or commit reference in its PyPI metadata. Do not associate it with the later Rust CLI or current repository license.",
+    "distribution": {
+      "ecosystem": "pypi",
+      "name": "open-interpreter",
+      "version": "0.4.3",
+      "url": "https://files.pythonhosted.org/packages/4f/37/193d392bc8428509739f22f07902ff7e3daee6ee3e7c176c08ef3f0c0a8a/open_interpreter-0.4.3-py3-none-any.whl",
+      "sha256": "bb694b826b11986a305b7d34acbabae830481bb1180b52fe1b912e882a21b590"
+    },
+    "distributions": [
+      {
+        "ecosystem": "pypi",
+        "name": "setuptools",
+        "version": "80.9.0",
+        "url": "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl",
+        "sha256": "062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922"
+      }
+    ],
+    "requiresPython": ">=3.9,<3.13"
+  },
+  "adapter": {
+    "id": "open-interpreter",
+    "version": "0.2.0",
+    "runtimePackage": "open-interpreter",
+    "runtimeVersion": "0.4.3",
+    "frameworkPackage": "@t-alent/adapter-open-interpreter"
+  }
+}

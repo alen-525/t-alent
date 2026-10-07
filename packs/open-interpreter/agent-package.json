@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "open-interpreter",
+  "name": "Open Interpreter (Python legacy runtime)",
+  "version": "0.2.0",
+  "description": "Run the official Open Interpreter 0.4.3 Python chat and code-execution loop with an external OpenAI-compatible model profile.",
+  "modelProtocols": ["openai-chat-completions"],
+  "prompts": {
+    "system": "system.md",
+    "protocol_openai_chat_completions": "protocol-openai-chat-completions.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "open-interpreter",
+    "defaults": {},
+    "steps": [
+      { "type": "prompt", "ref": "system" },
+      { "type": "prompt", "ref": "protocol_openai_chat_completions", "when": { "protocol": "openai-chat-completions" } },
+      { "type": "prompt", "ref": "task" },
+      { "type": "execute" }
+    ]
+  },
+  "source": { "agent": "open-interpreter", "version": "0.4.3" }
+}

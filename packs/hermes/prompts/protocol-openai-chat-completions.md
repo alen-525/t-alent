@@ -1,0 +1,1 @@
+The host supplies an OpenAI-compatible Chat Completions endpoint and the exact model ID. Use the selected model exactly as routed by the host. Do not request or store credentials in conversation content.

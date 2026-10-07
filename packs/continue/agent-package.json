@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "continue",
+  "name": "Continue Agent",
+  "version": "0.2.0",
+  "description": "Run the pinned Continue CLI coding loop with a host-selected model.",
+  "modelProtocols": [
+    "openai-chat-completions",
+    "anthropic"
+  ],
+  "prompts": {
+    "system": "system.md",
+    "protocol_openai_chat_completions": "protocol-openai-chat-completions.md",
+    "protocol_anthropic": "protocol-anthropic.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "continue",
+    "defaults": {
+      "permissions": "readonly"
+    },
+    "steps": [
+      {
+        "type": "prompt",
+        "ref": "system"
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_openai_chat_completions",
+        "when": {
+          "protocol": "openai-chat-completions"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_anthropic",
+        "when": {
+          "protocol": "anthropic"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "task"
+      },
+      {
+        "type": "execute"
+      }
+    ]
+  },
+  "source": {
+    "agent": "continue",
+    "version": "1.5.47"
+  }
+}

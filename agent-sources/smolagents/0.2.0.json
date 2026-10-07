@@ -1,0 +1,29 @@
+{
+  "packageId": "smolagents",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "smolagents",
+    "package": "smolagents",
+    "version": "1.26.0",
+    "repository": "https://github.com/huggingface/smolagents",
+    "license": "Apache-2.0",
+    "sourceTag": "v1.26.0",
+    "distribution": {
+      "ecosystem": "pypi",
+      "name": "smolagents",
+      "version": "1.26.0",
+      "url": "https://files.pythonhosted.org/packages/89/8c/72bd5edc13288e3f27d4d9c1ef65adc0a68c950ee1fc6d3be270e1110f6c/smolagents-1.26.0-py3-none-any.whl",
+      "sha256": "70e1cfb1576f782da93190ee31d9bb2659e5ca4bd84fda0c412e1f20498f28b6"
+    },
+    "requiresPython": ">=3.10"
+  },
+  "adapter": {
+    "id": "smolagents",
+    "version": "0.2.0",
+    "runtimePackage": "smolagents",
+    "runtimeVersion": "1.26.0",
+    "runtimeKind": "python-wheel",
+    "frameworkPackage": "@t-alent/adapter-smolagents"
+  }
+}

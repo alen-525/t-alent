@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "roo",
+  "name": "Roo Code Agent",
+  "version": "0.2.0",
+  "description": "Run tasks through the pinned Roo Code CLI while retaining its native tools, loop, and session history.",
+  "modelProtocols": [
+    "openai-chat-completions"
+  ],
+  "prompts": {
+    "system": "system.md",
+    "protocol_openai_chat_completions": "protocol-openai-chat-completions.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "roo",
+    "defaults": {},
+    "steps": [
+      {
+        "type": "prompt",
+        "ref": "system"
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_openai_chat_completions",
+        "when": {
+          "protocol": "openai-chat-completions"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "task"
+      },
+      {
+        "type": "execute"
+      }
+    ]
+  },
+  "source": {
+    "agent": "roo",
+    "version": "0.1.17"
+  }
+}

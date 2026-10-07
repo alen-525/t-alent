@@ -1,19 +1,41 @@
 {
   "name": "t-alent",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "type": "module",
-  "workspaces": ["packs/*"],
+  "bin": {
+    "t-alent": "apps/cli/index.mjs"
+  },
+  "workspaces": [
+    "packages/runtime/adapters/*"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
+    "cli": "node apps/cli/index.mjs",
+    "cli:all": "node scripts/run-all-agents.mjs cli",
     "host": "node packages/runtime/cli.mjs",
+    "host:all": "node scripts/run-all-agents.mjs host",
+    "pack:agents": "node scripts/pack-agents.mjs",
+    "verify:agents": "node scripts/verify-agent-packages.mjs",
+    "bench:agents": "node scripts/benchmark-agent-compiler.mjs",
     "test:runtime": "node --test packages/runtime/*.test.mjs apps/web/src/runtime-contract.test.mjs",
-    "test:pack": "npm test --workspaces --if-present",
-    "test": "npm run test:runtime && npm run test:pack"
+    "test:cli": "node --test apps/cli/*.test.mjs",
+    "test:pack": "node scripts/run-all-agents.mjs test",
+    "test": "npm run test:runtime && npm run test:cli && npm run test:pack"
   },
-  "dependencies": { "@vitejs/plugin-react": "^4.3.4", "vite": "^6.0.0", "typescript": "^5.7.2", "react": "^18.3.1", "react-dom": "^18.3.1", "lucide-react": "^0.468.0" },
-  "devDependencies": { "@types/react": "^18.3.12", "@types/react-dom": "^18.3.1" }
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.0",
+    "typescript": "^5.7.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "lucide-react": "^0.468.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1"
+  }
 }

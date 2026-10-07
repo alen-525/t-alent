@@ -1,0 +1,7 @@
+# CrewAI adapter
+
+This package runs the pinned official CrewAI 1.15.23 framework. The worker constructs the native `Crew`, `Agent`, and sequential `Task` APIs and uses the official `crewai-tools` FileReadTool and FileWriterTool, with path sandbox roots set to the selected workspace. Its observed tool subclasses delegate directly to those original implementations. There is no custom agent loop.
+
+The current official `crewai-tools` release no longer includes the old CodeInterpreterTool (the core release also marks it unavailable). This adapter therefore provides workspace file editing only: it does not run shell commands, Python, tests, browsers, web search, MCP, or external applications. The full arbitrary model ID and OpenAI-compatible base URL are passed through CrewAI's OpenAI-compatible LLM route. API keys are passed to the short-lived worker process only and are not written to adapter state; history stores task/result context, scoped by workspace, session, and profile, because CrewAI has no checkpoint/resume snapshot in this configuration.
+
+Run `npm run setup:runtime -- --state-dir <private-state-dir> --python <python-3.10-to-3.13>` once. The installer downloads only the two pinned official wheels, verifies their SHA-256 hashes before pip resolves their declared dependencies, and creates an isolated venv in the private state directory. Set `TALENT_CREWAI_PYTHON` or `TALENT_PYTHON` to select the venv interpreter. No global Python packages are installed.

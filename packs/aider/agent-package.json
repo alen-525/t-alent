@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "aider",
+  "name": "Aider Agent",
+  "version": "0.2.0",
+  "description": "Run coding tasks through the pinned Aider coding agent with isolated host-supplied OpenAI Chat Completions profiles.",
+  "modelProtocols": ["openai-chat-completions"],
+  "prompts": {
+    "system": "system.md",
+    "protocol_openai_chat_completions": "protocol-openai-chat-completions.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "aider",
+    "defaults": {},
+    "steps": [
+      { "type": "prompt", "ref": "system" },
+      { "type": "prompt", "ref": "protocol_openai_chat_completions", "when": { "protocol": "openai-chat-completions" } },
+      { "type": "prompt", "ref": "task" },
+      { "type": "execute" }
+    ]
+  },
+  "source": { "agent": "aider", "version": "0.86.2" }
+}

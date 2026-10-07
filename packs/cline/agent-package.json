@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "cline",
+  "name": "Cline Agent",
+  "version": "0.2.0",
+  "description": "Run coding tasks through the pinned Cline Core local SDK with a host-supplied model profile.",
+  "modelProtocols": [
+    "openai-chat-completions"
+  ],
+  "prompts": {
+    "system": "system.md",
+    "protocol_openai_chat_completions": "protocol-openai-chat-completions.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "cline",
+    "defaults": {},
+    "steps": [
+      {
+        "type": "prompt",
+        "ref": "system"
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_openai_chat_completions",
+        "when": {
+          "protocol": "openai-chat-completions"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "task"
+      },
+      {
+        "type": "execute"
+      }
+    ]
+  },
+  "source": {
+    "agent": "cline",
+    "version": "0.0.90"
+  }
+}

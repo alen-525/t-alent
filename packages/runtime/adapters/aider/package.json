@@ -1,0 +1,12 @@
+{
+  "name": "@t-alent/adapter-aider",
+  "version": "0.2.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "exports": { ".": "./src/index.mjs" },
+  "files": ["src/", "tests/", "scripts/", "README.md", "LICENSE", "LICENSE.aider", "THIRD-PARTY-NOTICES.md"],
+  "scripts": { "setup:runtime": "node scripts/setup-runtime.mjs", "test": "node --test tests/*.test.mjs", "smoke:mock": "node scripts/real-runtime-smoke.mjs" },
+  "dependencies": {}
+}

@@ -1,0 +1,1 @@
+The host model profile must use the `openai-chat-completions` protocol. Qwen Code's OpenAI authentication mode uses `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and the requested model. The adapter maps the host profile into these process-local values; do not infer a model, provider, endpoint, or credential from local settings.

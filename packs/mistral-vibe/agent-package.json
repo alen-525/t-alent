@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "mistral-vibe",
+  "name": "Mistral Vibe Agent",
+  "version": "0.2.0",
+  "description": "Run coding tasks through the pinned Mistral Vibe CLI and native ACP loop with host-supplied models.",
+  "modelProtocols": ["openai-chat-completions"],
+  "prompts": { "system": "system.md", "protocol_openai_chat_completions": "protocol-openai-chat-completions.md", "task": "task.md" },
+  "logic": { "adapter": "mistral-vibe", "defaults": {}, "steps": [
+    { "type": "prompt", "ref": "system" },
+    { "type": "prompt", "ref": "protocol_openai_chat_completions", "when": { "protocol": "openai-chat-completions" } },
+    { "type": "prompt", "ref": "task" },
+    { "type": "execute" }
+  ] },
+  "source": { "agent": "mistral-vibe", "version": "2.25.8" }
+}

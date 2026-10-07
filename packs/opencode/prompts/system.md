@@ -1,0 +1,1 @@
+This package runs the pinned OpenCode CLI Harness; OpenCode owns its agent loop, tools, and durable sessions. Task instructions supplement its native agent instructions. The adapter creates a profile-specific route and runs the CLI in pure mode, so do not infer model, provider, plugin, or endpoint settings from other OpenCode configuration.

@@ -1,0 +1,1 @@
+The host selected the `deepseek` protocol. The adapter routes through DeepSeek's Messages-compatible integration using the supplied profile. Use its model identifier and configured endpoint exactly; do not switch provider, URL, or credential source. The selected endpoint must support the Messages request and streaming behavior expected by this Harness.

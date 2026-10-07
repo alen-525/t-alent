@@ -1,0 +1,1 @@
+Use the host-selected model through AutoGen's OpenAI-compatible Chat Completions client. The host passes the model identifier and API base URL directly and does not apply provider-specific model rewriting.

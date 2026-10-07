@@ -1,0 +1,27 @@
+{
+  "packageId": "goose",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "goose",
+    "package": "goose CLI",
+    "version": "1.48.0",
+    "repository": "https://github.com/aaif-goose/goose",
+    "license": "Apache-2.0",
+    "referenceCommit": "25021517f12cab87c94bed0874fe7d28168dc264",
+    "sourceTag": "v1.48.0",
+    "releaseArchive": {
+      "platform": "darwin-arm64",
+      "sha256": "a0568e64ab21d0defd2c8dfd9e236b876b6357fb752c8e451f4bfe706aeb40c0",
+      "checksumSource": "Pinned locally from the official release archive; upstream publishes no checksum manifest.",
+      "url": "https://github.com/aaif-goose/goose/releases/download/v1.48.0/goose-aarch64-apple-darwin.tar.bz2"
+    }
+  },
+  "adapter": {
+    "id": "goose",
+    "version": "0.2.0",
+    "runtimePackage": "goose CLI",
+    "runtimeVersion": "1.48.0",
+    "frameworkPackage": "@t-alent/adapter-goose"
+  }
+}

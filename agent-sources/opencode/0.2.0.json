@@ -1,0 +1,26 @@
+{
+  "packageId": "opencode",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "opencode",
+    "package": "opencode-ai",
+    "version": "1.18.32",
+    "repository": "https://github.com/anomalyco/opencode",
+    "license": "MIT",
+    "referenceCommit": "545f51d26cc39a907d2867492d498d9607ea5fa4",
+    "sourceTag": "v1.18.32",
+    "lockfile": {
+      "resolved": "https://registry.npmjs.org/opencode-ai/-/opencode-ai-1.18.32.tgz",
+      "integrity": "sha512-SCrZWdq44y/EoH2+fE4HLcXS+DzpVqHPzmXk3p2RrufYy8LWvpfhRhKtijb5ktvx8r94ScqToqwHxR0BwS65OQ==",
+      "license": "MIT"
+    }
+  },
+  "adapter": {
+    "id": "opencode",
+    "version": "0.2.0",
+    "runtimePackage": "opencode-ai",
+    "runtimeVersion": "1.18.32",
+    "frameworkPackage": "@t-alent/adapter-opencode"
+  }
+}

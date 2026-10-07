@@ -1,0 +1,29 @@
+{
+  "packageId": "mini-swe-agent",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "mini-swe-agent",
+    "package": "mini-swe-agent",
+    "version": "2.4.6",
+    "repository": "https://github.com/SWE-agent/mini-swe-agent",
+    "license": "MIT",
+    "sourceTag": "v2.4.6",
+    "sourceCommit": "a83fcae82d2a08f0ee0c688f9d137b3566c097f8",
+    "distribution": {
+      "ecosystem": "pypi",
+      "name": "mini-swe-agent",
+      "version": "2.4.6",
+      "url": "https://files.pythonhosted.org/packages/a2/00/a2f454775f69f540ab529c5f5e35d672f6491f0e6edab7cb196a0d2a0e2e/mini_swe_agent-2.4.6-py3-none-any.whl",
+      "sha256": "a35463c553ac825c7773b03cfa69cd44958e3af20155dcc5711fdf9e4c67cd54"
+    },
+    "requirementsPython": ">=3.10"
+  },
+  "adapter": {
+    "id": "mini-swe-agent",
+    "version": "0.2.0",
+    "runtimePackage": "mini-swe-agent",
+    "runtimeVersion": "2.4.6",
+    "frameworkPackage": "@t-alent/adapter-mini-swe-agent"
+  }
+}

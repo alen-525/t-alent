@@ -1,0 +1,11 @@
+{
+  "name": "@t-alent/adapter-hermes",
+  "version": "0.2.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "exports": { ".": "./src/index.mjs" },
+  "files": ["src/", "scripts/", "tests/", "README.md", "LICENSE", "LICENSE.hermes", "THIRD-PARTY-NOTICES.md"],
+  "scripts": { "setup:runtime": "node scripts/setup-runtime.mjs", "test": "node --test tests/*.test.mjs", "smoke:mock": "node scripts/real-runtime-smoke.mjs" }
+}

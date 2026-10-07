@@ -1,0 +1,30 @@
+{
+  "name": "@t-alent/adapter-codex",
+  "version": "0.2.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src/",
+    "tests/",
+    "scripts/",
+    "examples/",
+    "README.md",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md",
+    "LICENSE.codex"
+  ],
+  "dependencies": {
+    "@openai/codex": "0.159.3"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "smoke:mock": "node scripts/real-runtime-smoke.mjs"
+  }
+}

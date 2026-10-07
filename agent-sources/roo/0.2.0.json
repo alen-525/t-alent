@@ -1,0 +1,64 @@
+{
+  "packageId": "roo",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "roo",
+    "package": "@roo-code/cli",
+    "version": "0.1.17",
+    "repository": "https://github.com/RooCodeInc/Roo-Code",
+    "license": "Apache-2.0",
+    "referenceCommit": "3e237e60616a1ea9c0b8477de3a74ba942de7af2",
+    "sourceTag": "cli-v0.1.17",
+    "releaseArchive": {
+      "platform": "darwin-arm64",
+      "url": "https://github.com/RooCodeInc/Roo-Code/releases/download/cli-v0.1.17/roo-cli-darwin-arm64.tar.gz",
+      "sha256": "cf3c1612cd6cd1e50d3db005548a071a634f17a62ca8e8b1ead5a6e832763537",
+      "checksumSource": "Pinned locally from the official release archive; upstream publishes no checksum manifest."
+    },
+    "archiveOmittedDependencies": [
+      {
+        "name": "@trpc/client",
+        "upstreamRange": "^11.8.1",
+        "pinnedVersion": "11.8.1",
+        "resolved": "https://registry.npmjs.org/@trpc/client/-/client-11.8.1.tgz",
+        "integrity": "sha512-L/SJFGanr9xGABmuDoeXR4xAdHJmsXsiF9OuH+apecJ+8sUITzVT1EPeqp0ebqA6lBhEl5pPfg3rngVhi/h60Q=="
+      },
+      {
+        "name": "commander",
+        "upstreamRange": "^12.1.0",
+        "pinnedVersion": "12.1.0",
+        "resolved": "https://registry.npmjs.org/commander/-/commander-12.1.0.tgz",
+        "integrity": "sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA=="
+      },
+      {
+        "name": "p-wait-for",
+        "upstreamRange": "^5.0.2",
+        "pinnedVersion": "5.0.2",
+        "resolved": "https://registry.npmjs.org/p-wait-for/-/p-wait-for-5.0.2.tgz",
+        "integrity": "sha512-lwx6u1CotQYPVju77R+D0vFomni/AqRfqLmqQ8hekklqZ6gAY9rONh7lBQ0uxWMkC2AuX9b2DVAl8To0NyP1JA=="
+      },
+      {
+        "name": "react",
+        "upstreamRange": "^19.1.0",
+        "pinnedVersion": "19.1.0",
+        "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
+        "integrity": "sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg=="
+      },
+      {
+        "name": "superjson",
+        "upstreamRange": "^2.2.6",
+        "pinnedVersion": "2.2.6",
+        "resolved": "https://registry.npmjs.org/superjson/-/superjson-2.2.6.tgz",
+        "integrity": "sha512-H+ue8Zo4vJmV2nRjpx86P35lzwDT3nItnIsocgumgr0hHMQ+ZGq5vrERg9kJBo5AWGmxZDhzDo+WVIJqkB0cGA=="
+      }
+    ]
+  },
+  "adapter": {
+    "id": "roo",
+    "version": "0.2.0",
+    "runtimePackage": "@roo-code/cli",
+    "runtimeVersion": "0.1.17",
+    "frameworkPackage": "@t-alent/adapter-roo"
+  }
+}

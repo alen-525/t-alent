@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "pi",
+  "name": "Pi Agent",
+  "version": "0.2.0",
+  "description": "Run coding tasks through the pinned Pi Coding Agent SDK with host-supplied model profiles.",
+  "modelProtocols": [
+    "openai-chat-completions",
+    "openai-responses",
+    "anthropic",
+    "google-generative-ai"
+  ],
+  "prompts": {
+    "system": "system.md",
+    "protocol_openai_chat_completions": "protocol-openai-chat-completions.md",
+    "protocol_openai_responses": "protocol-openai-responses.md",
+    "protocol_anthropic": "protocol-anthropic.md",
+    "protocol_google_generative_ai": "protocol-google-generative-ai.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "pi",
+    "defaults": {},
+    "steps": [
+      {
+        "type": "prompt",
+        "ref": "system"
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_openai_chat_completions",
+        "when": {
+          "protocol": "openai-chat-completions"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_openai_responses",
+        "when": {
+          "protocol": "openai-responses"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_anthropic",
+        "when": {
+          "protocol": "anthropic"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_google_generative_ai",
+        "when": {
+          "protocol": "google-generative-ai"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "task"
+      },
+      {
+        "type": "execute"
+      }
+    ]
+  },
+  "source": {
+    "agent": "pi",
+    "version": "0.73.1"
+  }
+}

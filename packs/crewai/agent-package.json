@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "crewai",
+  "name": "CrewAI Coding Agent",
+  "version": "0.2.0",
+  "description": "Run native CrewAI Crew, Agent, and Task orchestration with official workspace file tools and an external OpenAI-compatible model profile.",
+  "modelProtocols": ["openai-chat-completions"],
+  "prompts": {"system":"system.md","protocol_openai_chat_completions":"protocol-openai-chat-completions.md","task":"task.md"},
+  "logic": {"adapter":"crewai","defaults":{},"steps":[{"type":"prompt","ref":"system"},{"type":"prompt","ref":"protocol_openai_chat_completions","when":{"protocol":"openai-chat-completions"}},{"type":"prompt","ref":"task"},{"type":"execute"}]},
+  "source": {"agent":"crewai","version":"1.15.23"}
+}

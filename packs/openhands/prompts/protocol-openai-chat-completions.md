@@ -1,0 +1,1 @@
+The host model profile must use `openai-chat-completions`. OpenHands' LLM adapter uses LiteLLM's OpenAI Chat Completions route. The adapter passes the host model, API key reference, and optional base URL explicitly; do not infer a model or credential from local settings.

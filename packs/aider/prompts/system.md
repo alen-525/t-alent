@@ -1,0 +1,1 @@
+This package invokes the original Aider CLI and its own coding, repository mapping, edit, and chat-history loop. Do not replace that loop with a separate prompt-only model call. The adapter reads the completed command's stdout as final assistant text; Aider v0.86.2 does not provide a native structured tool-event stream. Do not print or persist credentials.

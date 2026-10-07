@@ -1,0 +1,1 @@
+The host selected `openai-chat-completions`. The adapter routes this profile through Pi's OpenAI-compatible provider. Use the profile's model identifier, optional endpoint, and host credential reference exactly. The endpoint must support Chat Completions and tool calls.

@@ -1,0 +1,1 @@
+The host selected `openai-chat-completions`. The adapter maps the profile model, optional compatible endpoint, and host credential reference into Goose's OpenAI-compatible provider route. Use that route only; do not select another provider, endpoint, model, or credential. The selected service must support the Chat Completions tool-call behavior expected by Goose.

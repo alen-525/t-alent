@@ -1,0 +1,1 @@
+The host selected `anthropic`. The adapter routes through Pi's Anthropic Messages provider. Use the model and optional endpoint from the host profile and its credential reference; do not substitute another route. The endpoint must follow the Anthropic Messages contract.

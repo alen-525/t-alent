@@ -1,0 +1,1 @@
+This package runs Pi Coding Agent's SDK-owned agent loop, built-in coding tools, streaming, and native session format. These task instructions supply the current request and workspace context; Pi's native system prompt and tool behavior remain upstream-owned. The adapter isolates sessions by host session and complete model profile. Do not save or reveal credentials.

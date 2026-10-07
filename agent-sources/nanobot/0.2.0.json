@@ -1,0 +1,31 @@
+{
+  "packageId": "nanobot",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "nanobot",
+    "package": "nanobot-ai",
+    "version": "0.3.5",
+    "repository": "https://github.com/HKUDS/nanobot",
+    "license": "MIT",
+    "sourceTag": "v0.3.5",
+    "referenceCommit": null,
+    "sourceNote": "The version is verified from the official PyPI sdist. Its release tag exists, but this source record does not assign the PyPI artifact a Git commit without matching provenance metadata.",
+    "distribution": {
+      "ecosystem": "pypi",
+      "name": "nanobot-ai",
+      "version": "0.3.5",
+      "url": "https://files.pythonhosted.org/packages/source/n/nanobot-ai/nanobot_ai-0.3.5.tar.gz",
+      "sha256": "5d5d92ba163937421c99404ac026dc4723d3b23b83c13a0be3111237401a1dc0"
+    },
+    "distributions": [],
+    "requiresPython": ">=3.11"
+  },
+  "adapter": {
+    "id": "nanobot",
+    "version": "0.2.0",
+    "runtimePackage": "nanobot-ai",
+    "runtimeVersion": "0.3.5",
+    "frameworkPackage": "@t-alent/adapter-nanobot"
+  }
+}

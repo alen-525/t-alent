@@ -1,0 +1,1 @@
+The host selected the `openai-responses` protocol. Use the supplied model profile and its adapter-configured route exactly. Do not substitute a model, provider, endpoint, or credential source. The adapter accepts only this Responses-compatible route; compatibility is determined by the selected service and model.

@@ -8,11 +8,10 @@
 .input:disabled{cursor:not-allowed}
 .modelArea{display:flex;align-items:center;gap:6px;min-width:0;flex:1;color:var(--talent-muted);font-size:12px}
 .modelLabel{font-weight:600;color:var(--talent-text,var(--talent-muted))}
-.modelSelect,.modelInput{min-width:0;max-width:100%;padding:5px 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit}
-.modelSelect:hover:not(:disabled),.modelInput:focus{border-color:var(--talent-line);background:var(--talent-surface)}
+.modelSelect{min-width:0;max-width:100%;padding:5px 8px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit}
+.modelSelect:hover:not(:disabled){border-color:var(--talent-line);background:var(--talent-surface)}
 .modelSelect{flex:1;width:0}
-.modelInput{flex:1}
-.modelSelect:disabled,.modelInput:disabled{opacity:.6;cursor:not-allowed}
+.modelSelect:disabled{opacity:.6;cursor:not-allowed}
 .modelHint{flex-basis:100%;color:var(--talent-muted)}
 .modelError{display:flex;align-items:center;gap:8px;flex-basis:100%;color:var(--talent-danger,#b42318);font-size:11px}
 .modelError button{border:0;background:transparent;color:inherit;text-decoration:underline;cursor:pointer;font:inherit;white-space:nowrap}

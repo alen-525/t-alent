@@ -1,0 +1,1 @@
+This package runs the original OpenHands Software Agent SDK Agent and Conversation loop. OpenHands manages reasoning, durable event history, and its native terminal and file tools. Task instructions supplement OpenHands' built-in coding behavior.

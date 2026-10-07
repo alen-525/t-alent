@@ -1,0 +1,25 @@
+{
+  "packageId": "deepseek",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "deepseek",
+    "package": "@deepseek-ai/dsh",
+    "version": "0.2.0-rc.2",
+    "repository": "https://github.com/deepseek-ai/deepseek-harness",
+    "referenceCommit": "639ed015397290b3745d163aafe02ffee4aa3f84",
+    "license": "MIT",
+    "lockfile": {
+      "resolved": "https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.2.0-rc.2.tgz",
+      "integrity": "sha512-EAJ3gPNcVt/uv8X19PMm9NkVhWgT7xXNMk0UKCVm+IQ5rpSQOcsMUa0HWlnYYVybKMsccjcRB21vVVsaXQ6IdA==",
+      "license": "MIT"
+    }
+  },
+  "adapter": {
+    "id": "deepseek",
+    "version": "0.2.0",
+    "runtimePackage": "@deepseek-ai/dsh",
+    "runtimeVersion": "0.2.0-rc.2",
+    "frameworkPackage": "@t-alent/adapter-deepseek"
+  }
+}

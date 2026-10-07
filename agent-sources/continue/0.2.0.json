@@ -1,0 +1,25 @@
+{
+  "packageId": "continue",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "continue",
+    "package": "@continuedev/cli",
+    "version": "1.5.47",
+    "repository": "https://github.com/continuedev/continue",
+    "license": "Apache-2.0",
+    "referenceCommit": "d3f60ba9dd3fb5bfd3c91d6fbb41ce1aa768db45",
+    "lockfile": {
+      "resolved": "https://registry.npmjs.org/@continuedev/cli/-/cli-1.5.47.tgz",
+      "integrity": "sha512-gtpewV3RoIOD9dyTtKIBi1SY0VOHRu3Ehe7C/mmnswm+j34MPyrcQhQaWj/m+jdfGO4fNIKdrgGIlLso1ULDFw==",
+      "license": "Apache-2.0"
+    }
+  },
+  "adapter": {
+    "id": "continue",
+    "version": "0.2.0",
+    "runtimePackage": "@continuedev/cli",
+    "runtimeVersion": "1.5.47",
+    "frameworkPackage": "@t-alent/adapter-continue"
+  }
+}

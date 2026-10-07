@@ -1,0 +1,25 @@
+{
+  "packageId": "pi",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "pi",
+    "package": "@mariozechner/pi-coding-agent",
+    "version": "0.73.1",
+    "repository": "https://github.com/badlogic/pi-mono/tree/781152fc24841dc54b22284514604048ebe5e2c9/packages/coding-agent",
+    "referenceCommit": "781152fc24841dc54b22284514604048ebe5e2c9",
+    "license": "MIT",
+    "lockfile": {
+      "resolved": "https://registry.npmjs.org/@mariozechner/pi-coding-agent/-/pi-coding-agent-0.73.1.tgz",
+      "integrity": "sha512-gXQh3SaZmWTfVMc4Ao5+LGbVeKvzyO7tolok0nLsZgq9nGjZx/EEU3NM8C+qUnB4Nvs2rswG5qOVgLzQkq0fHQ==",
+      "license": "MIT"
+    }
+  },
+  "adapter": {
+    "id": "pi",
+    "version": "0.2.0",
+    "runtimePackage": "@mariozechner/pi-coding-agent",
+    "runtimeVersion": "0.73.1",
+    "frameworkPackage": "@t-alent/adapter-pi"
+  }
+}

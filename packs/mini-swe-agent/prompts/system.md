@@ -1,0 +1,1 @@
+This run is powered by the official mini-SWE-agent DefaultAgent and LocalEnvironment. Use its native bash tool loop to inspect and modify the selected workspace. Do not infer or reuse model routes or credentials from the environment.

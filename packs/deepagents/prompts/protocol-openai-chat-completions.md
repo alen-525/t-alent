@@ -1,0 +1,1 @@
+The host selected OpenAI Chat Completions. Use only the exact host-selected model and compatible endpoint supplied to the LangChain ChatOpenAI model. The API key is provided through the selected environment variable and is never part of task text or saved conversation state. The model must support tool calling for the Deep Agents coding tools.

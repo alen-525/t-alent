@@ -1,0 +1,1 @@
+The host selected the `google-generative-ai` protocol. The adapter routes to the Gemini API through the profile's model identifier and optional compatible base URL. Use the host-provided route and credential reference only. This package does not provide a model catalog and does not switch to OAuth or Vertex credentials.

@@ -1,0 +1,40 @@
+{
+  "packageId": "mistral-vibe",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "mistral-vibe",
+    "package": "mistral-vibe",
+    "version": "2.25.8",
+    "repository": "https://github.com/mistralai/mistral-vibe",
+    "sourceTag": "v2.25.8",
+    "referenceCommit": "7c19608af06f6c61d63f8f7a5c3430da73fba2ab",
+    "license": "Apache-2.0",
+    "requiresPython": ">=3.12",
+    "distribution": {
+      "ecosystem": "pypi",
+      "name": "mistral-vibe",
+      "version": "2.25.8",
+      "filename": "mistral_vibe-2.25.8-cp312-abi3-macosx_11_0_arm64.whl",
+      "url": "https://files.pythonhosted.org/packages/e7/87/12fdf1763ccc23bea4396f2ae14b5bc06dd5095b741fcbb6fccc591fe012/mistral_vibe-2.25.8-cp312-abi3-macosx_11_0_arm64.whl",
+      "sha256": "9b2a3f9c1078e8cf2bd0a2cd860336b3ad8039894ecf423994588be4545d73ea",
+      "license": "Apache-2.0",
+      "requiresPython": ">=3.12"
+    },
+    "artifacts": [
+      { "platform": "darwin-arm64", "filename": "mistral_vibe-2.25.8-cp312-abi3-macosx_11_0_arm64.whl", "url": "https://files.pythonhosted.org/packages/e7/87/12fdf1763ccc23bea4396f2ae14b5bc06dd5095b741fcbb6fccc591fe012/mistral_vibe-2.25.8-cp312-abi3-macosx_11_0_arm64.whl", "sha256": "9b2a3f9c1078e8cf2bd0a2cd860336b3ad8039894ecf423994588be4545d73ea" },
+      { "platform": "darwin-x64", "filename": "mistral_vibe-2.25.8-cp312-abi3-macosx_11_0_x86_64.whl", "url": "https://files.pythonhosted.org/packages/4c/90/0611fca521027557e1d3d677d79e2a186bc50343cb0f65bd8ec951179299/mistral_vibe-2.25.8-cp312-abi3-macosx_11_0_x86_64.whl", "sha256": "22a3eef4015ae16cdd3654be41cd5d1bdeb23a18cc5bf845d0cdf291277ed824" },
+      { "platform": "linux-arm64", "filename": "mistral_vibe-2.25.8-cp312-abi3-manylinux_2_28_aarch64.whl", "url": "https://files.pythonhosted.org/packages/3c/39/05c61cddf0f406361aa6a2faff69c75713de4c9d74c8827f076806487849/mistral_vibe-2.25.8-cp312-abi3-manylinux_2_28_aarch64.whl", "sha256": "a73727361c98440d20c376bff69edf92fd18d01c03f81e54e3d47135df2c9f20" },
+      { "platform": "linux-x64", "filename": "mistral_vibe-2.25.8-cp312-abi3-manylinux_2_28_x86_64.whl", "url": "https://files.pythonhosted.org/packages/cb/7a/3ccfdbb088c6411d1a6acc8ffa88c2c8d793075d9624a53fdb8cd3aea008/mistral_vibe-2.25.8-cp312-abi3-manylinux_2_28_x86_64.whl", "sha256": "d0d004cb834e8e7973378bb779411fe97bb4ed9d7e533c121d64c7fbd2ec3dea" },
+      { "platform": "win32-x64", "filename": "mistral_vibe-2.25.8-cp312-abi3-win_amd64.whl", "url": "https://files.pythonhosted.org/packages/89/10/6858b5316c2ca11ca8e0da93c62eb810e506e77ebd812773b3b860931980/mistral_vibe-2.25.8-cp312-abi3-win_amd64.whl", "sha256": "6c21acc2bffdfd1a94c9da6d54db51ee4e2542a60165e46d5727ff06e0a57ae1" }
+    ]
+  },
+  "adapter": {
+    "id": "mistral-vibe",
+    "version": "0.2.0",
+    "runtimePackage": "mistral-vibe",
+    "runtimeVersion": "2.25.8",
+    "runtimeKind": "python-cli",
+    "frameworkPackage": "@t-alent/adapter-mistral-vibe"
+  }
+}

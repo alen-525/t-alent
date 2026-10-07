@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "opencode",
+  "name": "OpenCode Agent",
+  "version": "0.2.0",
+  "description": "Run coding tasks through the pinned OpenCode CLI with host-supplied model profiles.",
+  "modelProtocols": [
+    "openai-chat-completions",
+    "anthropic",
+    "openai-responses"
+  ],
+  "prompts": {
+    "system": "system.md",
+    "protocol_openai_chat_completions": "protocol-openai-chat-completions.md",
+    "protocol_anthropic": "protocol-anthropic.md",
+    "protocol_openai_responses": "protocol-openai-responses.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "opencode",
+    "defaults": {},
+    "steps": [
+      {
+        "type": "prompt",
+        "ref": "system"
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_openai_chat_completions",
+        "when": {
+          "protocol": "openai-chat-completions"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_anthropic",
+        "when": {
+          "protocol": "anthropic"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_openai_responses",
+        "when": {
+          "protocol": "openai-responses"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "task"
+      },
+      {
+        "type": "execute"
+      }
+    ]
+  },
+  "source": {
+    "agent": "opencode",
+    "version": "1.18.32"
+  }
+}

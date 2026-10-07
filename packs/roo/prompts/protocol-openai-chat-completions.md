@@ -1,0 +1,1 @@
+The host selected an OpenAI Chat Completions compatible profile. The host supplies the exact model identifier and endpoint for this run. Keep using that provider and model through Roo's native model handler; do not substitute another provider, model, or credential. The endpoint must support tool calls.

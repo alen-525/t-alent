@@ -1,0 +1,1 @@
+The host selected `openai-responses`. The adapter uses Pi's OpenAI Responses provider; keep this distinct from Chat Completions and do not silently switch protocols or models. Use only the host-selected route.

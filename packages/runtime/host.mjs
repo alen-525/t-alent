@@ -1,20 +1,32 @@
 import { createServer } from 'node:http'
-import { readFile, realpath } from 'node:fs/promises'
+import { readFile, realpath, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { compileAgentPackage, validateAgentManifest } from './agent-compiler.mjs'
+import { createProgramRuntime } from './agent-program.mjs'
+import { ADAPTERS, createAdapter } from './adapters/registry.mjs'
+import { validatePackageMetadata } from './manifest-metadata.mjs'
 
 const MAX_BODY = 1024 * 1024
 const LOOPBACK = new Set(['127.0.0.1', '::1', 'localhost'])
 
+async function readManifestJson(dir) {
+  const file = path.join(dir, 'agent-package.json')
+  const info = await stat(file)
+  if (!info.isFile() || info.size > 128 * 1024) throw new Error('Package manifest must be a JSON file no larger than 128 KiB.')
+  const bytes = await readFile(file)
+  if (bytes.length > 128 * 1024) throw new Error('Package manifest is too large.')
+  return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
+}
+
 export function validateManifest(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Package manifest must be a JSON object.')
-  const { id, name, version, entry } = input
-  if (typeof id !== 'string' || !/^[a-z0-9][a-z0-9._-]{1,79}$/i.test(id)) throw new Error('Invalid package id.')
-  if (typeof name !== 'string' || !name.trim() || name.length > 100) throw new Error('Invalid package name.')
-  if (typeof version !== 'string' || !version.trim() || version.length > 40) throw new Error('Invalid package version.')
-  if (typeof entry !== 'string' || !entry.trim()) throw new Error('Package manifest must declare an entry path.')
-  if (input.modelProtocols !== undefined && (!Array.isArray(input.modelProtocols) || input.modelProtocols.some(value => typeof value !== 'string' || !value.trim() || value.length > 200 || value !== value.trim()))) throw new Error('Invalid package modelProtocols.')
-  return { id, name: name.trim(), version: version.trim(), ...(typeof input.description === 'string' ? { description: input.description.slice(0, 500) } : {}), ...(input.modelProtocols === undefined ? {} : { modelProtocols: [...new Set(input.modelProtocols)] }), entry }
+  if (Object.hasOwn(input, 'schemaVersion')) {
+    const definition = validateAgentManifest(input)
+    return validatePackageMetadata(definition)
+  }
+  if (typeof input.entry !== 'string' || !input.entry.trim()) throw new Error('Package manifest must declare an entry path.')
+  return validatePackageMetadata(input)
 }
 
 export function parseHostArgs(argv) {
@@ -35,14 +47,14 @@ export function parseHostArgs(argv) {
   return options
 }
 
-async function readConfig(filename) {
+export async function readConfig(filename) {
   if (!filename) return {}
   const value = JSON.parse(await readFile(filename, 'utf8'))
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Config must be a JSON object keyed by package id.')
   return value
 }
 
-async function readModels(filename) {
+export async function readModels(filename) {
   if (!filename) return { profiles: [], defaultModelId: undefined }
   const value = JSON.parse(await readFile(filename, 'utf8'))
   const fail = () => { throw new Error('Invalid model registry.') }
@@ -71,12 +83,33 @@ async function readModels(filename) {
 /** Inspect metadata without importing code. Metadata registration never activates a package. */
 export async function readPackageManifest(packagePath) {
   const dir = await realpath(packagePath)
-  return validateManifest(JSON.parse(await readFile(path.join(dir, 'agent-package.json'), 'utf8')))
+  return validateManifest(await readManifestJson(dir))
 }
 
 export async function loadPackage(packagePath, { workspace, stateRoot, env = process.env, config = {} }) {
   const packageDir = await realpath(packagePath)
-  const manifest = validateManifest(JSON.parse(await readFile(path.join(packageDir, 'agent-package.json'), 'utf8')))
+  const definition = await readManifestJson(packageDir)
+  let manifest = validateManifest(definition)
+  if (manifest.schemaVersion === 1) {
+    // Bind execution to the compiler's validated snapshot, including edits during loading.
+    const compiled = await compileAgentPackage(packageDir, { cacheDir: path.join(stateRoot, 'cache', 'agents') })
+    const programDefinition = compiled.manifest
+    manifest = validatePackageMetadata(programDefinition)
+    const { adapter: id } = programDefinition.logic
+    if (!Object.hasOwn(ADAPTERS, id)) throw new Error(`Unknown framework adapter: ${id}`)
+    const adapter = ADAPTERS[id]
+    if (programDefinition.source.agent !== id || programDefinition.source.version !== adapter.sourceVersion) throw new Error(`Agent source version does not match the installed ${id} adapter (${adapter.sourceVersion}).`)
+    if (manifest.modelProtocols.some(protocol => !adapter.modelProtocols.includes(protocol))) throw new Error(`Agent program declares a protocol unsupported by adapter ${id}.`)
+    const runtime = await createAdapter(id, {
+      workspace, stateDir: path.join(stateRoot, manifest.id), env,
+      config: { ...compiled.manifest.logic.defaults, ...(config[manifest.id] ?? {}) },
+    })
+    return {
+      manifest,
+      runtime: createProgramRuntime({ program: compiled.program, fingerprint: compiled.fingerprint, runtime, workspace }),
+      compilation: { fingerprint: compiled.fingerprint, cache: compiled.cache.status },
+    }
+  }
   const entry = await realpath(path.resolve(packageDir, manifest.entry))
   if (entry !== packageDir && !entry.startsWith(packageDir + path.sep)) throw new Error('Package entry must remain inside its package directory.')
   const module = await import(pathToFileURL(entry).href)

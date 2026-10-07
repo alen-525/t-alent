@@ -1,0 +1,1 @@
+This package runs the pinned Qwen Code CLI Harness; Qwen Code owns its agent loop, native tools, and conversation history. Task instructions supplement its native coding behavior. The adapter selects the host-supplied OpenAI-compatible model explicitly and isolates Qwen configuration and history by model route.

@@ -1,0 +1,1 @@
+The host selected `openai-chat-completions`. The adapter routes through Cline's OpenAI-compatible provider using the model profile supplied by the host. Keep the selected model, endpoint, and credential reference; do not substitute or discover another route. The compatible endpoint must support streaming tool calls.

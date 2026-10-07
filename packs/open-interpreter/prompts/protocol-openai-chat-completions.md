@@ -1,0 +1,1 @@
+Use the model profile selected by the host. Its model name, provider label, base URL, API key environment variable, and OpenAI Chat Completions protocol are supplied independently of this package. Do not request, print, or persist credentials.

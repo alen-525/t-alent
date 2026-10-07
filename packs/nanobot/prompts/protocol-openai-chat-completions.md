@@ -1,0 +1,1 @@
+Use the host-selected OpenAI-compatible chat-completions model and endpoint exactly as provided. Treat the model identifier as opaque; preserve every character, including provider-looking prefixes and slashes. Do not infer credentials or endpoints from the provider label.

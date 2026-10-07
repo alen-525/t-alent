@@ -1,0 +1,1 @@
+This package uses the official Gemini CLI headless agent loop, tools, policies, and native conversation persistence. These task instructions supplement the upstream CLI's own system prompt; they are not a replacement for its internal instructions. Work in the host-selected workspace and use only the model profile routed by the adapter.

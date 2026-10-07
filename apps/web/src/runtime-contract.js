@@ -1,14 +1,5 @@
 /** Small host boundary helpers shared by the UI and Node's built-in tests. */
-export function validateManifest(input) {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Descriptor must be a JSON object.')
-  const value = input
-  if (typeof value.id !== 'string' || !/^[a-z0-9][a-z0-9._-]{1,79}$/i.test(value.id)) throw new Error('id must be 2–80 letters, numbers, dots, underscores, or hyphens.')
-  if (typeof value.name !== 'string' || !value.name.trim() || value.name.length > 100) throw new Error('name must be a non-empty string up to 100 characters.')
-  if (typeof value.version !== 'string' || !value.version.trim() || value.version.length > 40) throw new Error('version must be a non-empty string up to 40 characters.')
-  if (value.description !== undefined && (typeof value.description !== 'string' || value.description.length > 500)) throw new Error('description must be at most 500 characters.')
-  if (value.modelProtocols !== undefined && (!Array.isArray(value.modelProtocols) || value.modelProtocols.some(protocol => typeof protocol !== 'string' || !protocol.trim()))) throw new Error('modelProtocols must be an array of non-empty protocol names.')
-  return { id: value.id, name: value.name.trim(), version: value.version.trim(), ...(typeof value.description === 'string' ? { description: value.description } : {}), ...(typeof value.entry === 'string' ? { entry: value.entry } : {}), ...(Array.isArray(value.modelProtocols) ? { modelProtocols: [...new Set(value.modelProtocols.map(protocol => protocol.trim()))] } : {}) }
-}
+export { validatePackageMetadata as validateManifest } from '../../../packages/runtime/manifest-metadata.mjs'
 
 export function validateModelCatalog(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some(key => !['models', 'defaultModelId'].includes(key)) || !Array.isArray(input.models)) throw new Error('Host returned an invalid model catalog.')
@@ -48,6 +39,7 @@ export function appendTaskEvent(turns, event) {
   }
   if (event.type === 'tool-call') return [...turns, { role: 'tool', text: `${event.name} · ${JSON.stringify(event.input ?? '')}` }]
   if (event.type === 'tool-result') return [...turns, { role: 'tool', text: `${event.name} · ${JSON.stringify(event.output ?? '')}` }]
+  if (event.type === 'harness-event' && typeof event.event?.agent === 'string' && typeof event.event?.content === 'string') return [...turns, { role: 'tool', text: `${event.event.agent} · ${event.event.content}` }]
   if (event.type === 'cancelled') return [...turns, { role: 'tool', text: 'Task cancelled' }]
   if (event.type === 'error') return [...turns, { role: 'tool', text: `Task error · ${event.message}` }]
   return turns

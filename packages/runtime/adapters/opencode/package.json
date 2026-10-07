@@ -1,0 +1,29 @@
+{
+  "name": "@t-alent/adapter-opencode",
+  "version": "0.2.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src/",
+    "tests/",
+    "scripts/",
+    "README.md",
+    "LICENSE",
+    "LICENSE.opencode",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "dependencies": {
+    "opencode-ai": "1.18.32"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "smoke:mock": "node scripts/real-runtime-smoke.mjs"
+  }
+}

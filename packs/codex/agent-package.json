@@ -1,16 +1,43 @@
 {
+  "schemaVersion": 1,
   "id": "codex",
   "name": "Codex Agent",
-  "version": "0.1.0",
-  "description": "使用原版 Codex Harness 执行 Responses 协议模型，保留工具循环与会话恢复；模型路由由宿主 profile 提供。",
-  "modelProtocols": ["openai-responses"],
-  "entry": "src/index.mjs",
-  "upstream": {
-    "package": "@openai/codex",
-    "version": "0.159.3",
-    "repository": "https://github.com/openai/codex",
-    "license": "Apache-2.0",
-    "referenceCommit": "01fc69f4026735edfdf6789820549727a4867b11",
-    "sourceTag": "rust-v0.159.3"
+  "version": "0.2.0",
+  "description": "Run coding tasks through the pinned Codex App Server with host-supplied model profiles.",
+  "modelProtocols": [
+    "openai-responses"
+  ],
+  "prompts": {
+    "system": "system.md",
+    "protocol_openai_responses": "protocol-openai-responses.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "codex",
+    "defaults": {},
+    "steps": [
+      {
+        "type": "prompt",
+        "ref": "system"
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_openai_responses",
+        "when": {
+          "protocol": "openai-responses"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "task"
+      },
+      {
+        "type": "execute"
+      }
+    ]
+  },
+  "source": {
+    "agent": "codex",
+    "version": "0.159.3"
   }
 }

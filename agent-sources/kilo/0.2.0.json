@@ -1,0 +1,34 @@
+{
+  "packageId": "kilo",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "kilo",
+    "package": "@kilocode/cli",
+    "version": "7.8.3",
+    "repository": "https://github.com/Kilo-Org/kilocode",
+    "license": "MIT",
+    "referenceCommit": "59f1428abb5fe782ee7bd4d258e72a08b74aadb4",
+    "sourceTag": "v7.8.3",
+    "lockfile": {
+      "resolved": "https://registry.npmjs.org/@kilocode/cli/-/cli-7.8.3.tgz",
+      "integrity": "sha512-3OBkmFrAi01YNrV7yZli7H3J3SR4X9e3dKey5sd9CVwVKXq85ZenbV/btp2xeDObWbRsdux4OYyfLuRR0ZA5xw==",
+      "license": "MIT",
+      "platformArtifact": {
+        "package": "@kilocode/cli-darwin-arm64",
+        "version": "7.8.3",
+        "resolved": "https://registry.npmjs.org/@kilocode/cli-darwin-arm64/-/cli-darwin-arm64-7.8.3.tgz",
+        "integrity": "sha512-JVSSZ/kGC5j4BsJvaIrp7YaoFubAcRh/ogrMsmcZ1B6vE5aeQ3Dui2vOEV7pD2slccV7VUM2lVTL2/XdhNKJ8A==",
+        "license": "MIT"
+      }
+    },
+    "licenseFile": "LICENSE.kilocode"
+  },
+  "adapter": {
+    "id": "kilo",
+    "version": "0.2.0",
+    "runtimePackage": "@kilocode/cli",
+    "runtimeVersion": "7.8.3",
+    "frameworkPackage": "@t-alent/adapter-kilo"
+  }
+}

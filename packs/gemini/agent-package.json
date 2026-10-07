@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "gemini",
+  "name": "Gemini CLI Agent",
+  "version": "0.2.0",
+  "description": "Run coding tasks through the pinned Gemini CLI headless Harness with host-supplied model profiles.",
+  "modelProtocols": [
+    "google-generative-ai"
+  ],
+  "prompts": {
+    "system": "system.md",
+    "protocol_google_generative_ai": "protocol-google-generative-ai.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "gemini",
+    "defaults": {},
+    "steps": [
+      {
+        "type": "prompt",
+        "ref": "system"
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_google_generative_ai",
+        "when": {
+          "protocol": "google-generative-ai"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "task"
+      },
+      {
+        "type": "execute"
+      }
+    ]
+  },
+  "source": {
+    "agent": "gemini",
+    "version": "0.62.0"
+  }
+}

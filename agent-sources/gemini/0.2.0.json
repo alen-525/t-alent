@@ -1,0 +1,26 @@
+{
+  "packageId": "gemini",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "gemini",
+    "package": "@google/gemini-cli",
+    "version": "0.62.0",
+    "repository": "https://github.com/google-gemini/gemini-cli",
+    "license": "Apache-2.0",
+    "referenceCommit": "b460678f3db508407554afd604cc9d6635becb2a",
+    "sourceTag": "v0.62.0",
+    "lockfile": {
+      "resolved": "https://registry.npmjs.org/@google/gemini-cli/-/gemini-cli-0.62.0.tgz",
+      "integrity": "sha512-A1rw0Tf2sHLpGncfYdaq5WaJIufKAP8il4BmHD5Yw4ewmB/Wo0vRQb2bEvx7OqyaPFPZCh0hVhcMKsICZyIBww==",
+      "license": "Apache-2.0"
+    }
+  },
+  "adapter": {
+    "id": "gemini",
+    "version": "0.2.0",
+    "runtimePackage": "@google/gemini-cli",
+    "runtimeVersion": "0.62.0",
+    "frameworkPackage": "@t-alent/adapter-gemini"
+  }
+}

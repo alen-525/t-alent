@@ -1,0 +1,1 @@
+The host supplied the OpenAI-compatible Chat Completions model route. Use the exact model, base URL, and credential supplied by the host. Reply using the native bash tool-call format and follow the upstream completion marker instructions.

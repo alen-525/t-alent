@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "openclaw",
+  "name": "OpenClaw Agent",
+  "version": "0.2.0",
+  "description": "Run the pinned OpenClaw embedded agent loop with a host-selected model.",
+  "modelProtocols": [
+    "openai-chat-completions",
+    "openai-responses",
+    "anthropic"
+  ],
+  "prompts": {
+    "system": "system.md",
+    "protocol": "protocol.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "openclaw",
+    "defaults": {},
+    "steps": [
+      {
+        "type": "prompt",
+        "ref": "system"
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol"
+      },
+      {
+        "type": "prompt",
+        "ref": "task"
+      },
+      {
+        "type": "execute"
+      }
+    ]
+  },
+  "source": {
+    "agent": "openclaw",
+    "version": "2026.9.8"
+  }
+}

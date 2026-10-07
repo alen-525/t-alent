@@ -1,0 +1,29 @@
+{
+  "name": "@t-alent/adapter-pi",
+  "version": "0.2.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src/",
+    "tests/",
+    "scripts/",
+    "README.md",
+    "LICENSE",
+    "LICENSE.pi",
+    "THIRD-PARTY-NOTICES.md"
+  ],
+  "dependencies": {
+    "@mariozechner/pi-coding-agent": "0.73.1"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "smoke:mock": "node scripts/real-runtime-smoke.mjs"
+  }
+}

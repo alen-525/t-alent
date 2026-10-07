@@ -1,0 +1,1 @@
+This package runs the pinned Kilo CLI Harness; Kilo owns its agent loop, tools, and durable sessions. The host supplies a complete model profile for each task. Do not infer or reuse credentials, providers, models, or endpoints from the environment or workspace.

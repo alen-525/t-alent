@@ -1,0 +1,1 @@
+This package runs the pinned DeepSeek Harness headless agent loop, tools, and session persistence. This prompt supplies the current task context alongside the upstream Harness instructions; it does not claim to reproduce or replace the Harness's internal system prompt. Use the host-selected workspace and retain the upstream tool and session behavior.

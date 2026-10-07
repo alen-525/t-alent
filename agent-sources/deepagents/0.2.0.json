@@ -1,0 +1,33 @@
+{
+  "packageId": "deepagents",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "deepagents",
+    "package": "deepagents",
+    "version": "0.7.21",
+    "repository": "https://github.com/langchain-ai/deepagents",
+    "license": "MIT",
+    "sourceTag": "deepagents==0.7.21",
+    "referenceCommit": "4394bcd00b8eb46e7c423939643a0dfcfb5d8773",
+    "distribution": {
+      "ecosystem": "pypi",
+      "name": "deepagents",
+      "version": "0.7.21",
+      "url": "https://files.pythonhosted.org/packages/d8/8d/5ad6f7271abe3d3b584c05661bc2fb0e75be7847581659e5de83c44f4592/deepagents-0.7.21-py3-none-any.whl",
+      "sha256": "c8e6a89c75c62c232f6197a21af5f1298fda7eb7f1bfbc321bbabf1fa70eefed"
+    },
+    "distributions": [
+      {"ecosystem":"pypi","name":"langchain-openai","version":"1.6.7","url":"https://files.pythonhosted.org/packages/18/d9/b3db61c6c15766c999194a9cba0b9c5035567b7e0dd1c1a94a6d76448cd6/langchain_openai-1.6.7-py3-none-any.whl","sha256":"e1b9b318fafc47b2dbc3485778aa23f809195065ee313611c188af29744b8e8e"},
+      {"ecosystem":"pypi","name":"langgraph-checkpoint-sqlite","version":"3.1.1","url":"https://files.pythonhosted.org/packages/f5/b9/e458601a1718337839bcfeec9d1b27b8b16ce135be2bd50ed0395d33a878/langgraph_checkpoint_sqlite-3.1.1-py3-none-any.whl","sha256":"8505c54c94a658080525d7e6780fdd4e0c078ff2566b30d399c02cc9f9af1c63"}
+    ],
+    "requirementsPython": ">=3.11"
+  },
+  "adapter": {
+    "id": "deepagents",
+    "version": "0.2.0",
+    "runtimePackage": "deepagents",
+    "runtimeVersion": "0.7.21",
+    "frameworkPackage": "@t-alent/adapter-deepagents"
+  }
+}

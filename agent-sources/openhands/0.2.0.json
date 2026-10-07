@@ -1,0 +1,43 @@
+{
+  "packageId": "openhands",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "openhands",
+    "package": "openhands-sdk",
+    "version": "1.51.0",
+    "repository": "https://github.com/OpenHands/software-agent-sdk",
+    "license": "MIT",
+    "requiresPython": ">=3.12",
+    "distribution": {
+      "ecosystem": "pypi",
+      "name": "openhands-sdk",
+      "version": "1.51.0",
+      "filename": "openhands_sdk-1.51.0-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/9d/45/1628c602fa04c3449b7b45da8db04e4fb4beccd41e39861421f49ba1bcb6/openhands_sdk-1.51.0-py3-none-any.whl",
+      "sha256": "7757a729e8767816979ae9bb9a0f38c44941c5ec1df9aed1c51b9af3204552b9",
+      "license": "MIT",
+      "requiresPython": ">=3.12"
+    },
+    "distributions": [
+      {
+        "ecosystem": "pypi",
+        "name": "openhands-tools",
+        "version": "1.51.0",
+        "filename": "openhands_tools-1.51.0-py3-none-any.whl",
+        "url": "https://files.pythonhosted.org/packages/45/76/5527c743ba4364a7668cd0b952bae4f6f4dd995635d300782bcce4301a2b/openhands_tools-1.51.0-py3-none-any.whl",
+        "sha256": "6935f6786ce2c065bfd531303a83934a832e49dcdad62a6c17b07dc6b28a25ae",
+        "license": "MIT",
+        "requiresPython": ">=3.12"
+      }
+    ]
+  },
+  "adapter": {
+    "id": "openhands",
+    "version": "0.2.0",
+    "runtimePackage": "openhands-sdk",
+    "runtimeVersion": "1.51.0",
+    "runtimeKind": "python-sdk",
+    "frameworkPackage": "@t-alent/adapter-openhands"
+  }
+}

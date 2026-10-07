@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "packageId": "openclaw",
+  "packageVersion": "0.2.0",
+  "source": {
+    "agent": "openclaw",
+    "package": "openclaw",
+    "version": "2026.9.8",
+    "repository": "https://github.com/openclaw/openclaw",
+    "sourceTag": "v2026.9.8",
+    "referenceCommit": "fc23bc864e4553c2d215e479eeec47b67a0bf943",
+    "license": "MIT",
+    "lockfile": {
+      "resolved": "https://registry.npmjs.org/openclaw/-/openclaw-2026.9.8.tgz",
+      "integrity": "sha512-G+JkNUhtpDE3cXR4AEi2NyyG9fqI/T2WUSl8ZnR8AATH8Dh1kC3qYFL7wwPoZtgHiP/cszA86PEiE0PDysxb9Q==",
+      "license": "MIT"
+    }
+  },
+  "adapter": {
+    "id": "openclaw",
+    "version": "0.2.0",
+    "runtimePackage": "openclaw",
+    "runtimeVersion": "2026.9.8",
+    "frameworkPackage": "@t-alent/adapter-openclaw"
+  }
+}

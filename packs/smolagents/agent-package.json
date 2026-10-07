@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "smolagents",
+  "name": "smolagents CodeAgent",
+  "version": "0.2.0",
+  "description": "Run Hugging Face smolagents CodeAgent with its native LocalPythonExecutor and an external OpenAI-compatible model profile.",
+  "modelProtocols": ["openai-chat-completions"],
+  "prompts": { "system": "system.md", "protocol_openai_chat_completions": "protocol-openai-chat-completions.md", "task": "task.md" },
+  "logic": {
+    "adapter": "smolagents",
+    "defaults": {},
+    "steps": [
+      {"type":"prompt","ref":"system"},
+      {"type":"prompt","ref":"protocol_openai_chat_completions","when":{"protocol":"openai-chat-completions"}},
+      {"type":"prompt","ref":"task"},
+      {"type":"execute"}
+    ]
+  },
+  "source": {"agent":"smolagents","version":"1.26.0"}
+}

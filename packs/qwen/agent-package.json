@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "qwen",
+  "name": "Qwen Code Agent",
+  "version": "0.2.0",
+  "description": "Run coding tasks through the pinned Qwen Code CLI Harness with host-supplied model profiles.",
+  "modelProtocols": ["openai-chat-completions"],
+  "prompts": { "system": "system.md", "protocol_openai_chat_completions": "protocol-openai-chat-completions.md", "task": "task.md" },
+  "logic": { "adapter": "qwen", "defaults": {}, "steps": [
+    { "type": "prompt", "ref": "system" },
+    { "type": "prompt", "ref": "protocol_openai_chat_completions", "when": { "protocol": "openai-chat-completions" } },
+    { "type": "prompt", "ref": "task" },
+    { "type": "execute" }
+  ] },
+  "source": { "agent": "qwen", "version": "0.24.7" }
+}

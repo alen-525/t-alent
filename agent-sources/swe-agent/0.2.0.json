@@ -1,0 +1,40 @@
+{
+  "packageId": "swe-agent",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "swe-agent",
+    "package": "sweagent",
+    "version": "1.1.0",
+    "repository": "https://github.com/SWE-agent/SWE-agent",
+    "license": "MIT",
+    "sourceTag": "v1.1.0",
+    "referenceCommit": "0f3acafacabc0def8cc76b4e48acb4b6cf302cb9",
+    "distribution": {
+      "ecosystem": "github",
+      "name": "sweagent",
+      "version": "1.1.0",
+      "url": "https://codeload.github.com/SWE-agent/SWE-agent/tar.gz/0f3acafacabc0def8cc76b4e48acb4b6cf302cb9",
+      "sha256": "2b41fb02041ba570268450e150a5a263e35a2ca8daa87c82a9d2dc14f2b7a104",
+      "commit": "0f3acafacabc0def8cc76b4e48acb4b6cf302cb9"
+    },
+    "distributions": [
+      {
+        "ecosystem": "pypi",
+        "name": "swe-rex",
+        "version": "1.4.0",
+        "url": "https://files.pythonhosted.org/packages/98/0d/d06ab2aa78138055c297490762cd7b4d8ac58a544783f874c869cdb7b534/swe_rex-1.4.0-py3-none-any.whl",
+        "sha256": "61261ad03eb23b717b5901cd5d229f24f6e1be2e120aad5c2e5ea3384a1d15ad"
+      }
+    ],
+    "requiresPython": ">=3.11"
+  },
+  "adapter": {
+    "id": "swe-agent",
+    "version": "0.2.0",
+    "runtimePackage": "sweagent",
+    "runtimeVersion": "1.1.0",
+    "runtimeKind": "python-source",
+    "frameworkPackage": "@t-alent/adapter-swe-agent"
+  }
+}

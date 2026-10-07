@@ -1,0 +1,31 @@
+{
+  "packageId": "hermes",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "hermes",
+    "version": "0.21.3",
+    "package": "hermes-agent",
+    "repository": "https://github.com/NousResearch/hermes-agent",
+    "license": "MIT",
+    "sourceTag": "v2026.9.14",
+    "referenceCommit": "345cd2b057a452236de401d3534b8502a7465e8d",
+    "sourceNote": "Pinned to the official release archive and peeled annotated tag commit. Source is run directly because upstream explicitly does not support wheel or sdist installation.",
+    "distribution": {
+      "ecosystem": "github",
+      "name": "hermes-agent",
+      "version": "0.21.3",
+      "commit": "345cd2b057a452236de401d3534b8502a7465e8d",
+      "url": "https://codeload.github.com/NousResearch/hermes-agent/tar.gz/345cd2b057a452236de401d3534b8502a7465e8d",
+      "sha256": "ed17fdd4423bfc7faee02399a866d5ee30a04a09523da6ea39d794f664526e55"
+    },
+    "requiresPython": ">=3.11,<3.14"
+  },
+  "adapter": {
+    "id": "hermes",
+    "version": "0.2.0",
+    "runtimePackage": "hermes-agent",
+    "runtimeVersion": "0.21.3",
+    "frameworkPackage": "@t-alent/adapter-hermes"
+  }
+}

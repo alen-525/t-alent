@@ -1,5 +1,6 @@
 /** Neutral bridge from the presentation framework to an independently owned host. */
-export type AgentPackageManifest = { id: string; name: string; version: string; description?: string; entry?: string; modelProtocols?: string[] }
+export type { AgentPackageMetadata as AgentPackageManifest } from '../../../packages/runtime/manifest-metadata.mjs'
+import type { AgentPackageMetadata as AgentPackageManifest } from '../../../packages/runtime/manifest-metadata.mjs'
 export type ModelProfile = { id: string; name?: string; provider: string; model: string; protocol: string; baseUrl?: string }
 export type ModelCatalog = { models: ModelProfile[]; defaultModelId?: string }
 /** A single user task. sessionId identifies the UI conversation, never a provider session. */

@@ -1,0 +1,26 @@
+{
+  "packageId": "codex",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "codex",
+    "package": "@openai/codex",
+    "version": "0.159.3",
+    "repository": "https://github.com/openai/codex",
+    "license": "Apache-2.0",
+    "referenceCommit": "01fc69f4026735edfdf6789820549727a4867b11",
+    "sourceTag": "rust-v0.159.3",
+    "lockfile": {
+      "resolved": "https://registry.npmjs.org/@openai/codex/-/codex-0.159.3.tgz",
+      "integrity": "sha512-hg4nlqCwRb87GocxNnHvz4sadOrdJ71mO0a4CUYWXjAozJe2gtuAdRFldKGSQXw9m7SgR4ydis12KDVVPgzDkQ==",
+      "license": "Apache-2.0"
+    }
+  },
+  "adapter": {
+    "id": "codex",
+    "version": "0.2.0",
+    "runtimePackage": "@openai/codex",
+    "runtimeVersion": "0.159.3",
+    "frameworkPackage": "@t-alent/adapter-codex"
+  }
+}

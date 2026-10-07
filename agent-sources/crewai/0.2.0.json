@@ -1,0 +1,18 @@
+{
+  "packageId": "crewai",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "crewai",
+    "package": "crewai",
+    "version": "1.15.23",
+    "repository": "https://github.com/crewAIInc/crewAI",
+    "license": "MIT",
+    "licenseFile": "LICENSE.crewai",
+    "requiresPython": ">=3.10,<3.14",
+    "sourceTag": "1.15.23",
+    "distribution": {"ecosystem":"pypi","name":"crewai","version":"1.15.23","url":"https://files.pythonhosted.org/packages/84/80/bfb12ca66eb3cb195a83ad92bc9c8ff3193192da9d9de3a6c22256e9e49c/crewai-1.15.23-py3-none-any.whl","sha256":"d7ca47f2adc6011be0ecb1a1bb855055282d621959bae4ad8347b52eb21d06d2"},
+    "distributions": [{"ecosystem":"pypi","name":"crewai-tools","version":"1.15.23","url":"https://files.pythonhosted.org/packages/67/d2/76b9e5521119264b506fe40e68f2758e0aa5080b2d9c2de6cd8b672b3b41/crewai_tools-1.15.23-py3-none-any.whl","sha256":"c22409799ce2824d9d99a4190613c69883d6c99677e683a89aa696576a75337e"}]
+  },
+  "adapter": {"id":"crewai","version":"0.2.0","runtimePackage":"crewai","runtimeVersion":"1.15.23","runtimeKind":"python-wheel","frameworkPackage":"@t-alent/adapter-crewai","companionRuntimePackage":"crewai-tools@1.15.23"}
+}

@@ -1,14 +1,43 @@
 {
+  "schemaVersion": 1,
   "id": "deepseek",
   "name": "DeepSeek Agent",
-  "version": "0.1.0",
-  "description": "使用原版 DeepSeek Harness 的 headless 工具循环与会话恢复；模型路由由宿主 profile 提供。",
-  "modelProtocols": ["deepseek"],
-  "entry": "src/index.mjs",
-  "upstream": {
-    "package": "@deepseek-ai/dsh",
-    "version": "0.2.0-rc.2",
-    "repository": "https://github.com/deepseek-ai/deepseek-harness",
-    "referenceCommit": "639ed015397290b3745d163aafe02ffee4aa3f84"
+  "version": "0.2.0",
+  "description": "Run coding tasks through the pinned DeepSeek Harness headless runner with host-supplied model profiles.",
+  "modelProtocols": [
+    "deepseek"
+  ],
+  "prompts": {
+    "system": "system.md",
+    "protocol_deepseek": "protocol-deepseek.md",
+    "task": "task.md"
+  },
+  "logic": {
+    "adapter": "deepseek",
+    "defaults": {},
+    "steps": [
+      {
+        "type": "prompt",
+        "ref": "system"
+      },
+      {
+        "type": "prompt",
+        "ref": "protocol_deepseek",
+        "when": {
+          "protocol": "deepseek"
+        }
+      },
+      {
+        "type": "prompt",
+        "ref": "task"
+      },
+      {
+        "type": "execute"
+      }
+    ]
+  },
+  "source": {
+    "agent": "deepseek",
+    "version": "0.2.0-rc.2"
   }
 }

@@ -1,0 +1,28 @@
+{
+  "packageId": "aider",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "aider",
+    "package": "aider-chat",
+    "version": "0.86.2",
+    "repository": "https://github.com/Aider-AI/aider",
+    "license": "Apache-2.0",
+    "sourceTag": "v0.86.2",
+    "distribution": {
+      "ecosystem": "pypi",
+      "name": "aider-chat",
+      "version": "0.86.2",
+      "url": "https://files.pythonhosted.org/packages/75/f7/e20749d9a510673e7adf910b005e3efe4ceaf9c194f1dd40d6931a3f34b9/aider_chat-0.86.2-py3-none-any.whl",
+      "sha256": "64f6a0c66c9f4633ad9f479bca3e64ebcba02b9da03c6b604b74a44736b2416e"
+    },
+    "requirementsPython": ">=3.10,<3.13"
+  },
+  "adapter": {
+    "id": "aider",
+    "version": "0.2.0",
+    "runtimePackage": "aider-chat",
+    "runtimeVersion": "0.86.2",
+    "frameworkPackage": "@t-alent/adapter-aider"
+  }
+}

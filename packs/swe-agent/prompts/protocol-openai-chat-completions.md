@@ -1,0 +1,1 @@
+Use OpenAI Chat Completions function calling. Invoke the `bash` function with a JSON object containing a single `command` string. Read each bash observation before choosing the next action. Call `bash` with command `exit` when finished.

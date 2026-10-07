@@ -1,0 +1,1 @@
+This package runs the pinned OpenClaw embedded Agent. OpenClaw owns its original tool loop and native conversation state. Use native workspace tools and report the outcome. Browser control and external message delivery are disabled.

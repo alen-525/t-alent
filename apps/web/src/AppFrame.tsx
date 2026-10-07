@@ -5,7 +5,7 @@
  * Copyright (c) DeepSeek. Licensed under MIT; see the repository's LICENSE.DeepSeek.
  */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { clampWidth, computeColumns, RIGHTBAR_DEFAULT_RATIO, RIGHTBAR_MIN, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT } from './columns'
+import { clampWidth, computeColumns, RIGHTBAR_DEFAULT_RATIO, RIGHTBAR_MIN, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns'
 import css from './AppFrame.module.css'
 
 function DragHandle({ side, left, onStart, onDrag, onEnd }: { side: 'sidebar' | 'rightbar'; left: number; onStart: () => void; onDrag: (dx: number) => void; onEnd: () => void }) {

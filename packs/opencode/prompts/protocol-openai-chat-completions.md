@@ -1,0 +1,1 @@
+The host selected `openai-chat-completions`, routed by the adapter through OpenCode's OpenAI-compatible provider. Use the host profile's provider, model, credential reference, and optional base URL. Do not switch routes. The endpoint must follow the Chat Completions request and tool-call contract.

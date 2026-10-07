@@ -1,0 +1,24 @@
+{
+  "packageId": "qwen",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "qwen",
+    "package": "@qwen-code/qwen-code",
+    "version": "0.24.7",
+    "repository": "https://github.com/QwenLM/qwen-code",
+    "license": "Apache-2.0",
+    "sourceTag": "v0.24.7",
+    "lockfile": {
+      "resolved": "https://registry.npmjs.org/@qwen-code/qwen-code/-/qwen-code-0.24.7.tgz",
+      "integrity": "sha512-NE+Ps9juMJS7DaHEVENIAJWCrzTiO/2bNq2TidmxmFc0ZbSMVKCfX3tlu2RY+CoP8xHFfUcy3MfQDQNszBJpJQ=="
+    }
+  },
+  "adapter": {
+    "id": "qwen",
+    "version": "0.2.0",
+    "runtimePackage": "@qwen-code/qwen-code",
+    "runtimeVersion": "0.24.7",
+    "frameworkPackage": "@t-alent/adapter-qwen"
+  }
+}

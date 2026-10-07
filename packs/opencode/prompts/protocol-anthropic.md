@@ -1,0 +1,1 @@
+The host selected `anthropic`, routed by the adapter through OpenCode's Anthropic Messages provider. Use the selected profile and its optional compatible endpoint without substituting credentials, model, or provider. The endpoint must implement the Anthropic Messages contract.

@@ -1,0 +1,1 @@
+The host selected `openai-responses`, routed by the adapter through OpenCode's OpenAI Responses provider. Use the host-supplied model and route exactly. Do not treat this profile as Chat Completions or silently fall back to another protocol.

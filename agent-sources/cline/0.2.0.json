@@ -1,0 +1,26 @@
+{
+  "packageId": "cline",
+  "packageVersion": "0.2.0",
+  "schemaVersion": 1,
+  "source": {
+    "agent": "cline",
+    "package": "@cline/core",
+    "version": "0.0.90",
+    "repository": "https://github.com/cline/cline/tree/main/sdk/packages/core",
+    "license": "Apache-2.0",
+    "referenceCommit": null,
+    "sourceCommitNote": "The published npm artifact does not expose a corresponding upstream source commit.",
+    "lockfile": {
+      "resolved": "https://registry.npmjs.org/@cline/core/-/core-0.0.90.tgz",
+      "integrity": "sha512-0145pt+yEEeMQRYwlarEo8akAAGTrDpEEfgXQAu6fxgQoho7f1z83s+fujB5b62lOTPsK5MokgZMd/D5DvLcFA==",
+      "shasum": "9c1ff222b054a8db35f38240decf005cee669881"
+    }
+  },
+  "adapter": {
+    "id": "cline",
+    "version": "0.2.0",
+    "runtimePackage": "@cline/core",
+    "runtimeVersion": "0.0.90",
+    "frameworkPackage": "@t-alent/adapter-cline"
+  }
+}

@@ -1,0 +1,1 @@
+The host selected `google-generative-ai`. The adapter routes through Pi's Google Generative AI provider using the host profile. Use its model and optional endpoint as supplied; do not fall back to another provider or credential source.

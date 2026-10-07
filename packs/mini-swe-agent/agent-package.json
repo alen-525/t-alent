@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "mini-swe-agent",
+  "name": "mini-SWE-agent",
+  "version": "0.2.0",
+  "description": "Run the official mini-SWE-agent bash agent with an external host model profile.",
+  "modelProtocols": ["openai-chat-completions"],
+  "prompts": { "system": "system.md", "protocol_openai_chat_completions": "protocol-openai-chat-completions.md", "task": "task.md" },
+  "logic": {
+    "adapter": "mini-swe-agent",
+    "defaults": {},
+    "steps": [
+      {"type":"prompt","ref":"system"},
+      {"type":"prompt","ref":"protocol_openai_chat_completions","when":{"protocol":"openai-chat-completions"}},
+      {"type":"prompt","ref":"task"},
+      {"type":"execute"}
+    ]
+  },
+  "source": {"agent":"mini-swe-agent","version":"2.4.6"}
+}

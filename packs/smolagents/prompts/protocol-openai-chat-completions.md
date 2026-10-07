@@ -1,0 +1,1 @@
+The host supplies an OpenAI-compatible Chat Completions model profile. Keep the model identifier exactly as supplied. Do not assume that every provider implements every CodeAgent prompt or Python feature.
